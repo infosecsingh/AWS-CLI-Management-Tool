@@ -2,7 +2,7 @@ import os
 import sys
 import itertools
 import time
-import aws_resources
+import cleansweep.aws_resources as aws_resources
 
 
 # Clean terminal Function for different OS based 
@@ -11,9 +11,6 @@ def clean_terminal():
         os.system('cls')
     else:
         os.system('clear')
-
-
-
 
 #Spinner for Animation 
 def spinner(duration):
@@ -37,11 +34,11 @@ def main_menu():
         print("[4] Exit")
         choice = input("Enter your choice: ")
         if choice == "1":
-            aws_resources.list_and_delete_resources()
+            aws_resources.aws_delete()
         elif choice == "2":
-            aws_resources.monitor_resources()
+            aws_resources.aws_monitor()
         elif choice == "3":
-            aws_resources.create_resources()
+            aws_resources.aws_create()
         elif choice == "4":
             print("Exiting...")
             sys.exit(0)

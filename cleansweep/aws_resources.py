@@ -1,10 +1,11 @@
 import boto3
+import sys
 
-def list_and_delete_resources():
+def aws_delete():
     print("deleting resource")
 
-def monitor_resources():
+def aws_monitor():
     print("deleting resource")
 
-def create_resources():
+def aws_create():
     print("deleting resource")
