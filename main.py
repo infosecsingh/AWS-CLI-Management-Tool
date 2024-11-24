@@ -1,7 +1,7 @@
 import os
 import sys
 import cleansweep.aws_resources as aws_resources
-# import cleansweep.spinner as spinner
+import cleansweep.spinner as spinner
 import cleansweep.clean_terminal as clean
 
 # Create a choice of options
@@ -10,7 +10,7 @@ import cleansweep.clean_terminal as clean
 def main_menu():   
     while True:
         clean.clean() 
-        # spinner.spinner(0.70)       
+        spinner.spinner(0.70)       
         print("\n AWS Management tool")
         print("[1] Collect All Resources")
         print("[2] Delete Resources")
