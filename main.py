@@ -1,7 +1,7 @@
 import os
 import sys
 import cleansweep.aws_resources as aws_resources
-import cleansweep.spinner as spinner
+# import cleansweep.spinner as spinner
 import cleansweep.clean_terminal as clean
 
 # Create a choice of options
@@ -10,20 +10,24 @@ import cleansweep.clean_terminal as clean
 def main_menu():   
     while True:
         clean.clean() 
-        spinner.spinner(0.70)       
+        # spinner.spinner(0.70)       
         print("\n AWS Management tool")
-        print("[1] List and delete resources")
-        print("[2] Monitor Resources")
-        print("[3] Create Resources")
-        print("[4] Exit")
+        print("[1] Collect All Resources")
+        print("[2] Delete Resources")
+        print("[3] Monitor Resources")
+        print("[4] Create Resources")
+        print("[5] Exit")
         choice = input("Enter your choice: ")
         if choice == "1":
-            aws_resources.aws_delete()
+            aws_resources.aws_collect()
         elif choice == "2":
-            aws_resources.aws_monitor()
+            aws_resources.aws_delete()
         elif choice == "3":
-            aws_resources.aws_create()
+            aws_resources.aws_monitor()
         elif choice == "4":
+            aws_resources.aws_create()
+        elif choice == "5":
+            clean.clean()
             print("Exiting...")
             sys.exit(0)
         else:
