@@ -2,19 +2,15 @@ import os
 import sys
 import cleansweep.aws_resources as aws_resources
 import cleansweep.spinner as spinner
-
-# Clean terminal Function for different OS based 
-def clean_terminal():
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
+import cleansweep.clean_terminal as clean
 
 # Create a choice of options
+
+
 def main_menu():   
     while True:
-        clean_terminal() 
-        spinner.spinner(10)       
+        clean.clean() 
+        spinner.spinner(0.70)       
         print("\n AWS Management tool")
         print("[1] List and delete resources")
         print("[2] Monitor Resources")
