@@ -1,35 +1,20 @@
 import boto3
+import botocore
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-import sys
 from tabulate import tabulate
-import itertools
-import time
+import certifi
 import sys
-import os
+from cleansweep.spinner import spinner
+from cleansweep.clean_terminal import clean
 
-
-def spinner(duration):
-    spinner_cycle = itertools.cycle(['-', '/', '|', '\\'])
-    end_time = time.time() + duration  # Run for the specified duration
-    while time.time() < end_time:
-        sys.stdout.write(f"\r{next(spinner_cycle)}")
-        sys.stdout.flush()
-        time.sleep(0.1)
-    sys.stdout.write("\r" + " " * 20 + "\r")  # Clear the line
-
-def clean():
-    if os.name == 'nt':
-        os.system('cls')
-    else:
-        os.system('clear')
+"""
+    Collect and display a summary of all running AWS resources in a table format.    
+"""
 
 def aws_collect():
-    """
-    Collect and display a summary of all running AWS resources in a table format.
-    """
     try:
         # Get a list of all AWS regions
-        ec2_client = boto3.client('ec2')
+        ec2_client = boto3.client('ec2', verify=certifi.where())  # Use certifi bundle for SSL
         regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
         print("\nCollecting AWS resources..")
         spinner(3)
@@ -38,7 +23,7 @@ def aws_collect():
         for region in regions:
             # EC2 Instances
             try:
-                ec2 = boto3.resource('ec2', region_name=region)
+                ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
                 running_instances = [
                     {'InstanceId': instance.id, 'State': instance.state['Name']}
                     for instance in ec2.instances.all()
@@ -53,7 +38,7 @@ def aws_collect():
 
         # S3 Buckets (Global)
         try:
-            s3 = boto3.resource('s3')
+            s3 = boto3.resource('s3', verify=certifi.where())
             buckets = [bucket.name for bucket in s3.buckets.all()]
             spinner(3)
             for bucket in buckets:
@@ -78,8 +63,9 @@ def aws_collect():
         print(f"Unexpected error: {e}")
 
 
+def aws_delete():
+    print("null")
 def aws_monitor():
-    print("deleting resource")
-
+    print("null")
 def aws_create():
-    print("deleting resource")
+    print("null")
