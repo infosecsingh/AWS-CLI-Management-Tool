@@ -12,11 +12,14 @@ from cleansweep.clean_terminal import clean
 """
 
 def aws_collect():
+    clean()
+    print("\n Collecting All Resources from Multi-AZ and Globally")
+    spinner(3)
     try:
         # Get a list of all AWS regions
         ec2_client = boto3.client('ec2', verify=certifi.where())  # Use certifi bundle for SSL
         regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
-        print("\nCollecting AWS resources..")
+        print("\nCollecting Information......")
         spinner(3)
         table_data = []  # Store rows for the table
 

@@ -6,7 +6,6 @@ import cleansweep.clean_terminal as clean
 
 # Create a choice of options
 
-
 def main_menu():   
     while True:
         clean.clean() 
@@ -17,18 +16,15 @@ def main_menu():
         print("├────────┬────────────────────────────────────────────────────────────────────────────────────┤")
         print("│ \033[1;34mOption\033[0m │                          \033[1;34mDescription\033[0m                                               │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   1    │ Change IP AE title                        │ CALLINGAETITLEVALUE                    │")
+        print("│   1    │ Check All Resources                       │ Get All Running Services from Multi-AZ │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   2    │ Change IS_RECOMMENDATIONS_ACTIVE          │ ipcore-recommendations-engine          │")
+        print("│   2    │ Delete Resources                          │ Delete/stop running services           │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   3    │ Change CDIP_AVAILABILITY                  │ ipcore-recommendation-engine           │")
+        print("│   3    │ Create Resources                          │ Create Services like Ec2, S3, etc.     │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   4    │ Troubleshoot Intelligent Protocol         │ K8s Services                           │")
-        print("├────────┴────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   5    │ Troubleshoot Intelligent Protocol         │ K8s Services                           │")
+        print("│   4    │ Monitor Resources                         │ Monitor Resources with CloudWatch API  │")
         print("└────────┴────────────────────────────────────────────────────────────────────────────────────┘")
-
-        choice = input("Enter your choice: ")
+        choice = input("Choose an option (1-5) or e[X]it: ")
         if choice == "1":
             aws_resources.aws_collect()
         elif choice == "2":
@@ -37,7 +33,7 @@ def main_menu():
             aws_resources.aws_monitor()
         elif choice == "4":
             aws_resources.aws_create()
-        elif choice == "5":
+        elif choice == "X"or"x":
             clean.clean()
             print("Exiting...")
             sys.exit(0)
