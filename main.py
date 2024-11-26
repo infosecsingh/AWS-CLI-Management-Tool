@@ -33,7 +33,11 @@ def main_menu():
             aws_resources.aws_monitor()
         elif choice == "4":
             aws_resources.aws_create()
-        elif choice == "X"or"x":
+        elif choice == "X":
+            clean.clean()
+            print("Exiting...")
+            sys.exit(0)
+        elif choice == "x":
             clean.clean()
             print("Exiting...")
             sys.exit(0)
