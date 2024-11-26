@@ -34,6 +34,17 @@ def aws_collect():
                     
             except Exception as e:
                 print(f"Error fetching EC2 instances in {region}: {e}")
+        
+        #EBS Volumes (Region)
+        try:
+                for region in regions:                   
+                    ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
+                    volumes = ec2.volumes.all()
+                    for volume in volumes:
+                        table_data.append(['EBS', region, volume.id])
+                print(f"Fetching EBS volumes..")        
+        except Exception as e:
+            print(f"Error fetching EBS volumes: {e}")
 
         # S3 Buckets (Global)
         try:
@@ -46,74 +57,66 @@ def aws_collect():
         except Exception as e:
             print(f"Error fetching S3 buckets: {e}")
         
-        # Lambda Functions (Global)
+        # Lambda Functions (Region based)
         try:
-            lambda_client = boto3.client('lambda', verify=certifi.where())
-            functions = lambda_client.list_functions()['Functions']
+            for region in regions:
+                lambda_client = boto3.client('lambda', region_name=region, verify=certifi.where())
+                functions = lambda_client.list_functions()['Functions']             
+                for function in functions:
+                    table_data.append(['Lambda', region, function['FunctionName']])
             spinner(3)
-            for function in functions:
-                table_data.append(['Lambda', 'Global', function['FunctionName']])
             print(f"Fetching Lambda functions..")
         except Exception as e:
             print(f"Error fetching Lambda functions: {e}")
         
-        # RDS Instances (Global)
+        # RDS Instances (Region based)
         try:
-            rds_client = boto3.client('rds', verify=certifi.where())
-            instances = rds_client.describe_db_instances()['DBInstances']
+            for region in regions:
+                rds_client = boto3.client('rds', region_name=region, verify=certifi.where())
+                instances = rds_client.describe_db_instances()['DBInstances']
+                for instance in instances:
+                    table_data.append(['RDS', region, instance['DBInstanceIdentifier']])
             spinner(3)
-            for instance in instances:
-                table_data.append(['RDS', 'Global', instance['DBInstanceIdentifier']])
             print(f"Fetching RDS instances..")
         except Exception as e:
             print(f"Error fetching RDS instances: {e}")
         
-        # DynamoDB Tables (Global)
+        # DynamoDB Tables (Region based)
         try:
-            dynamodb = boto3.resource('dynamodb', verify=certifi.where())
-            tables = dynamodb.tables.all()
+            for region in regions:
+                dynamodb = boto3.resource('dynamodb', region_name=region, verify=certifi.where())
+                tables = dynamodb.tables.all()
+                for table in tables:
+                  table_data.append(['DynamoDB', region, table.name])
             spinner(3)
-            for table in tables:
-                table_data.append(['DynamoDB', 'Global', table.name])
             print(f"Fetching DynamoDB tables..")    
         except Exception as e:
             print(f"Error fetching DynamoDB tables: {e}")
 
-        # Elastic Beanstalk Environments (Global)
+        # Elastic Beanstalk Environments (Region based)
         try:
-            eb_client = boto3.client('elasticbeanstalk', verify=certifi.where())
-            environments = eb_client.describe_environments()['Environments']
+            for region in regions:
+                eb_client = boto3.client('elasticbeanstalk', region_name=region, verify=certifi.where())
+                tables = eb_client.describe_environments()['Environments']
+                for table in tables:
+                    table_data.append(['Elastic Beanstalk', region, table['EnvironmentName']])
             spinner(3)
-            for environment in environments:
-                table_data.append(['Elastic Beanstalk', 'Global', environment['EnvironmentName']])
             print(f"Fetching Elastic Beanstalk environments..")
-
         except Exception as e:
             print(f"Error fetching Elastic Beanstalk environments: {e}")
 
-        #ELB Load Balancers (Global)
+        #ELB Load Balancers (Region Based)
         try:
-            elb_client = boto3.client('elb', verify=certifi.where())
-            load_balancers = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+            for region in regions:
+                elb_client = boto3.client('elb', region_name=region, verify=certifi.where())
+                load_balancers = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
+                for load_balancer in load_balancers:
+                    table_data.append(['ELB', region, load_balancer['LoadBalancerName']])
             spinner(3)
-            for load_balancer in load_balancers:
-                table_data.append(['ELB', 'Global', load_balancer['LoadBalancerName']])
             print(f"Fetching ELB load balancers..")
-
         except Exception as e:
             print(f"Error fetching ELB load balancers: {e}")
         
-        # VPCs (Global)
-        try:
-            ec2 = boto3.resource('ec2', verify=certifi.where())
-            vpcs = list(ec2.vpcs.all())
-            spinner(3)
-            for vpc in vpcs:
-                table_data.append(['VPC', 'Global', vpc.id])
-            print(f"Fetching VPCs..")
-        except Exception as e:
-            print(f"Error fetching VPCs: {e}")
-
         # IAM Roles (Global)
         try:
             iam = boto3.resource('iam', verify=certifi.where())
@@ -127,59 +130,63 @@ def aws_collect():
             print(f"Error fetching IAM roles: {e}")
     
 
-        # API Gateway APIs (Global)
+        # API Gateway APIs (Region based)
         try:
-            apigateway = boto3.client('apigateway', verify=certifi.where())
-            apis = apigateway.get_rest_apis()['items']
+            for region in regions:
+                apigateway = boto3.client('apigateway', region_name=region, verify=certifi.where())
+                apis = apigateway.get_rest_apis()['items']
+                for api in apis:
+                    table_data.append(['API Gateway', region, api['name']])
             spinner(3)
-            for api in apis:
-                table_data.append(['API Gateway', 'Global', api['name']])
             print(f"Fetching API Gateway APIs..")
-
         except Exception as e:
             print(f"Error fetching API Gateway APIs: {e}")
         
-        # ECS Clusters (Global)
+        # ECS Clusters (Region based)
         try:
-            ecs = boto3.client('ecs', verify=certifi.where())
-            clusters = ecs.list_clusters()['clusterArns']
+            for region in regions:
+                ecs = boto3.client('ecs', region_name=region, verify=certifi.where())
+                clusters = ecs.list_clusters()['clusterArns']
+                for cluster in clusters:
+                    table_data.append(['ECS Cluster', region, cluster])
             spinner(3)
-            for cluster in clusters:
-                table_data.append(['ECS Cluster', 'Global', cluster])
-            print(f"Fetching ECS clusters..")   
+            print(f"Fetching ECS clusters..")
         except Exception as e:
             print(f"Error fetching ECS clusters: {e}")
 
-        # EKS Clusters (Global)
+        # EKS Clusters (Region Based)
         try:
-            eks = boto3.client('eks', verify=certifi.where())
-            clusters = eks.list_clusters()['clusters']
+            for region in regions:
+                eks = boto3.client('eks', region_name=region, verify=certifi.where())
+                clusters = eks.list_clusters()['clusters']
+                for cluster in clusters:
+                    table_data.append(['EKS Cluster', region, cluster])
             spinner(3)
-            for cluster in clusters:
-                table_data.append(['EKS Cluster', 'Global', cluster])
             print(f"Fetching EKS clusters..")
         except Exception as e:
             print(f"Error fetching EKS clusters: {e}")
-        
-        # Redshift Clusters (Global)
+
+        # Redshift Clusters (Region Based)
         try:
-            redshift = boto3.client('redshift', verify=certifi.where())
-            clusters = redshift.describe_clusters()['Clusters']
+            for region in regions:
+                redshift = boto3.client('redshift', region_name=region, verify=certifi.where())
+                clusters = redshift.describe_clusters()['Clusters']
+                for cluster in clusters:
+                    table_data.append(['Redshift Cluster', region, cluster['ClusterIdentifier']])
             spinner(3)
-            for cluster in clusters:
-                table_data.append(['Redshift Cluster', 'Global', cluster['ClusterIdentifier']])
-            print(f"Fetching Redshift clusters..")  
+            print(f"Fetching Redshift clusters..")
         except Exception as e:
             print(f"Error fetching Redshift clusters: {e}")
         
-        # EMR Clusters (Global)
+        # EMR Clusters (Region Based)
         try:
-            emr = boto3.client('emr', verify=certifi.where())
-            clusters = emr.list_clusters()['Clusters']
+            for region in regions:
+                emr = boto3.client('emr', region_name=region, verify=certifi.where())
+                clusters = emr.list_clusters()['Clusters']
+                for cluster in clusters:
+                    table_data.append(['EMR Cluster', region, cluster['Id']])
             spinner(3)
-            for cluster in clusters:
-                table_data.append(['EMR Cluster', 'Global', cluster['Id']])
-            print(f"Fetching EMR clusters..")   
+            print(f"Fetching EMR clusters..") 
         except Exception as e:
             print(f"Error fetching EMR clusters: {e}")
         
@@ -187,21 +194,22 @@ def aws_collect():
         try:
             ses = boto3.client('ses', verify=certifi.where())
             identities = ses.list_identities()['Identities']
-            spinner(3)
             for identity in identities:
                 table_data.append(['SES Identity', 'Global', identity])
+            spinner(3)
             print(f"Fetching SES identities..") 
         except Exception as e:
             print(f"Error fetching SES identities: {e}")
         
-        # CloudWatch Alarms (Global)
+        # CloudWatch Alarms (Region Based)
         try:
-            cloudwatch = boto3.client('cloudwatch', verify=certifi.where())
-            alarms = cloudwatch.describe_alarms()['MetricAlarms']
-            spinner(3)
-            for alarm in alarms:
-                table_data.append(['CloudWatch Alarm', 'Global', alarm['AlarmName']])
-                print(f"Fetching CloudWatch alarms..")
+            for region in regions:
+                cloudwatch = boto3.client('cloudwatch', region_name=region, verify=certifi.where())
+                alarms = cloudwatch.describe_alarms()['MetricAlarms']
+                for alarm in alarms:
+                    table_data.append(['CloudWatch Alarm', region, alarm['AlarmName']])
+            spinner(3)    
+            print(f"Fetching CloudWatch alarms..")
         except Exception as e:
             print(f"Error fetching CloudWatch alarms: {e}")
 
