@@ -182,8 +182,17 @@ def main_menu():
         elif choice == "3":
             print(0)
         elif choice == "4":
+<<<<<<< HEAD
             print(0)
         elif choice in ["x", "X"]:
+=======
+            aws_resources.aws_create()
+        elif choice == "X":
+            clean.clean()
+            print("Exiting...")
+            sys.exit(0)
+        elif choice == "x":
+>>>>>>> 98d449b2b9d89356fc4380668ed137910761f5c0
             clean.clean()
             print("Exiting...")
             sys.exit(0)
