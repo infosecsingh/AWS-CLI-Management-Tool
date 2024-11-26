@@ -1,237 +1,263 @@
 import boto3
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-from tabulate import tabulate
 import certifi
-from cleansweep.spinner import spinner
-from cleansweep.clean_terminal import clean
+import cleansweep.spinner as spinner
+import cleansweep.clean_terminal as clean
 
 
-#Collect and display a summary of all running AWS resources in a table format.    
+def get_all_regions():
+    """
+    Fetches all AWS regions using the EC2 client.
+    """
+    ec2_client = boto3.client('ec2', verify=certifi.where())
+    return [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
 
-def aws_collect():
-    clean()
-    print("\033[1;34m Collecting All Resources from Multi-AZ and Globally\033[0m")
-    try:
-        # Get a list of all AWS regions
-        ec2_client = boto3.client('ec2', verify=certifi.where())  # Use certifi bundle for SSL
-        regions = [region['RegionName'] for region in ec2_client.describe_regions()['Regions']]
-        print("\nCollecting Information......")
-        spinner(3)
-        table_data = []  # Store rows for the table
+def fetch_ec2_instances():
+    """
+    Fetches all running EC2 instances across all regions.
+    Returns a list of dictionaries with instance details.
+    """
+    clean.clean()
+    regions = get_all_regions()
+    ec2_data = []
+    spinner.spinner(0.50)
+    for region in regions:
+        ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
+        print(f"Fetching EC2 instances in {region}....")
+        running_instances = [
+            {"ResourceType": "EC2", "Region": region, "ResourceId": instance.id, "State": instance.state['Name']}
+            for instance in ec2.instances.all()
+            if instance.state['Name'] == 'running'
+        ]
+        ec2_data.extend(running_instances)
+    return ec2_data
 
-        for region in regions:
-            # EC2 Instances
-            try:
-                ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
-                running_instances = [
-                    {'InstanceId': instance.id, 'State': instance.state['Name']}
-                    for instance in ec2.instances.all()
-                    if instance.state['Name'] == 'running'
-                ]
-                print(f"Fetching EC2 instances in {region}..")
-                for instance in running_instances:
-                    table_data.append(['EC2', region, instance['InstanceId']])
-                    
-            except Exception as e:
-                print(f"Error fetching EC2 instances in {region}: {e}")
-        
-        #EBS Volumes (Region)
-        try:
-                for region in regions:                   
-                    ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
-                    volumes = ec2.volumes.all()
-                    for volume in volumes:
-                        table_data.append(['EBS', region, volume.id])
-                print(f"Fetching EBS volumes..")        
-        except Exception as e:
-            print(f"Error fetching EBS volumes: {e}")
+def fetch_ebs_volumes():
+    """
+    Fetches all EBS volumes across all regions.
+    Returns a list of dictionaries with volume details.
+    """
+    clean.clean()
+    regions = get_all_regions()
+    ebs_data = []
+    spinner.spinner(0.50)
+    for region in regions:
+        ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
+        print(f"Fetching EBS volumes in {region}....")
+        volumes = [
+            {"ResourceType": "EBS", "Region": region, "ResourceId": volume.id, "State": volume.state}
+            for volume in ec2.volumes.all()
+        ]
+        ebs_data.extend(volumes)
+    return ebs_data
 
-        # S3 Buckets (Global)
-        try:
-            s3 = boto3.resource('s3', verify=certifi.where())
-            buckets = [bucket.name for bucket in s3.buckets.all()]
-            spinner(3)
-            for bucket in buckets:
-                table_data.append(['S3', 'Global', bucket])
-            print(f"Fetching S3 buckets..")
-        except Exception as e:
-            print(f"Error fetching S3 buckets: {e}")
-        
-        # Lambda Functions (Region based)
-        try:
-            for region in regions:
-                lambda_client = boto3.client('lambda', region_name=region, verify=certifi.where())
-                functions = lambda_client.list_functions()['Functions']             
-                for function in functions:
-                    table_data.append(['Lambda', region, function['FunctionName']])
-            spinner(3)
-            print(f"Fetching Lambda functions..")
-        except Exception as e:
-            print(f"Error fetching Lambda functions: {e}")
-        
-        # RDS Instances (Region based)
-        try:
-            for region in regions:
-                rds_client = boto3.client('rds', region_name=region, verify=certifi.where())
-                instances = rds_client.describe_db_instances()['DBInstances']
-                for instance in instances:
-                    table_data.append(['RDS', region, instance['DBInstanceIdentifier']])
-            spinner(3)
-            print(f"Fetching RDS instances..")
-        except Exception as e:
-            print(f"Error fetching RDS instances: {e}")
-        
-        # DynamoDB Tables (Region based)
-        try:
-            for region in regions:
-                dynamodb = boto3.resource('dynamodb', region_name=region, verify=certifi.where())
-                tables = dynamodb.tables.all()
-                for table in tables:
-                  table_data.append(['DynamoDB', region, table.name])
-            spinner(3)
-            print(f"Fetching DynamoDB tables..")    
-        except Exception as e:
-            print(f"Error fetching DynamoDB tables: {e}")
+def fetch_lambda_functions():
+    clean.clean()
+    regions = get_all_regions()
+    lambda_data = []
+    for region in regions:
+        ec2 = boto3.client('lambda', region_name=region, verify=certifi.where())
+        print(f"Fetching Lambda functions in {region}....")
+        functions = [
+            {"ResourceType": "Lambda", "Region": region, "ResourceId": function['FunctionName'], "State": "N/A"}
+            for function in ec2.list_functions()['Functions']
+        ]
+        lambda_data.extend(functions)
+    return lambda_data
 
-        # Elastic Beanstalk Environments (Region based)
-        try:
-            for region in regions:
-                eb_client = boto3.client('elasticbeanstalk', region_name=region, verify=certifi.where())
-                tables = eb_client.describe_environments()['Environments']
-                for table in tables:
-                    table_data.append(['Elastic Beanstalk', region, table['EnvironmentName']])
-            spinner(3)
-            print(f"Fetching Elastic Beanstalk environments..")
-        except Exception as e:
-            print(f"Error fetching Elastic Beanstalk environments: {e}")
+def fetch_rds_instances():
+    clean.clean()
+    regions = get_all_regions()
+    rds_data = []
+    for region in regions:
+        ec2 = boto3.client('rds', region_name=region, verify=certifi.where())
+        print(f"Fetching RDS instances in {region}....")
+        instances = [
+            {"ResourceType": "RDS", "Region": region, "ResourceId": instance['DBInstanceIdentifier'], "State": instance['DBInstanceStatus']}
+            for instance in ec2.describe_db_instances()['DBInstances']
+        ]
+        rds_data.extend(instances)
+    return rds_data
 
-        #ELB Load Balancers (Region Based)
-        try:
-            for region in regions:
-                elb_client = boto3.client('elb', region_name=region, verify=certifi.where())
-                load_balancers = elb_client.describe_load_balancers()['LoadBalancerDescriptions']
-                for load_balancer in load_balancers:
-                    table_data.append(['ELB', region, load_balancer['LoadBalancerName']])
-            spinner(3)
-            print(f"Fetching ELB load balancers..")
-        except Exception as e:
-            print(f"Error fetching ELB load balancers: {e}")
-        
-        # IAM Roles (Global)
-        try:
-            iam = boto3.resource('iam', verify=certifi.where())
-            roles = list(iam.roles.all())
-            spinner(3)
-            for role in roles:
-                table_data.append(['IAM Role', 'Global', role.name])
-            print(f"Fetching IAM roles..")  
+def fetch_dynamodb_tables():
+    clean.clean()
+    regions = get_all_regions()
+    dynamodb_data = []
+    for region in regions:
+        ec2 = boto3.client('dynamodb', region_name=region, verify=certifi.where())
+        print(f"Fetching DynamoDB tables in {region}....")
+        tables = [
+            {"ResourceType": "DynamoDB", "Region": region, "ResourceId": table['TableName'], "State": table['TableStatus']}
+            for table in ec2.list_tables()['TableNames']
+        ]
+        dynamodb_data.extend(tables)
+    return dynamodb_data
 
-        except Exception as e:
-            print(f"Error fetching IAM roles: {e}")
-    
+def fetch_elastic_beanstalk_environments():
+    clean.clean()
+    regions = get_all_regions()
+    elasticbeanstalk_data = []
+    for region in regions:
+        ec2 = boto3.client('elasticbeanstalk', region_name=region, verify=certifi.where())
+        print(f"Fetching Elastic Beanstalk environments in {region}....")
+        environments = [
+            {"ResourceType": "Elastic Beanstalk", "Region": region, "ResourceId": environment['EnvironmentName'], "State": environment['Status']}
+            for environment in ec2.describe_environments()['Environments']
+        ]
+        elasticbeanstalk_data.extend(environments)
+    return elasticbeanstalk_data
 
-        # API Gateway APIs (Region based)
-        try:
-            for region in regions:
-                apigateway = boto3.client('apigateway', region_name=region, verify=certifi.where())
-                apis = apigateway.get_rest_apis()['items']
-                for api in apis:
-                    table_data.append(['API Gateway', region, api['name']])
-            spinner(3)
-            print(f"Fetching API Gateway APIs..")
-        except Exception as e:
-            print(f"Error fetching API Gateway APIs: {e}")
-        
-        # ECS Clusters (Region based)
-        try:
-            for region in regions:
-                ecs = boto3.client('ecs', region_name=region, verify=certifi.where())
-                clusters = ecs.list_clusters()['clusterArns']
-                for cluster in clusters:
-                    table_data.append(['ECS Cluster', region, cluster])
-            spinner(3)
-            print(f"Fetching ECS clusters..")
-        except Exception as e:
-            print(f"Error fetching ECS clusters: {e}")
+def fetch_elastic_load_balancers():
+    clean.clean()
+    regions = get_all_regions()
+    elb_data = []
+    for region in regions:
+        ec2 = boto3.client('elb', region_name=region, verify=certifi.where())
+        print(f"Fetching Elastic Load Balancers in {region}....")
+        load_balancers = [
+            {"ResourceType": "ELB", "Region": region, "ResourceId": load_balancer['LoadBalancerName'], "State": load_balancer['State']}
+            for load_balancer in ec2.describe_load_balancers()['LoadBalancerDescriptions']
+        ]
+        elb_data.extend(load_balancers)
+    return elb_data 
 
-        # EKS Clusters (Region Based)
-        try:
-            for region in regions:
-                eks = boto3.client('eks', region_name=region, verify=certifi.where())
-                clusters = eks.list_clusters()['clusters']
-                for cluster in clusters:
-                    table_data.append(['EKS Cluster', region, cluster])
-            spinner(3)
-            print(f"Fetching EKS clusters..")
-        except Exception as e:
-            print(f"Error fetching EKS clusters: {e}")
+def fetch_api_gateways():
+    clean.clean()
+    regions = get_all_regions()
+    apigateway_data = []
+    for region in regions:
+        ec2 = boto3.client('apigateway', region_name=region, verify=certifi.where())
+        print(f"Fetching API Gateways in {region}....")
+        gateways = [
+            {"ResourceType": "API Gateway", "Region": region, "ResourceId": gateway['name'], "State": gateway['status']}
+            for gateway in ec2.get_rest_apis()['items']
+        ]
+        apigateway_data.extend(gateways)
+    return apigateway_data  
 
-        # Redshift Clusters (Region Based)
-        try:
-            for region in regions:
-                redshift = boto3.client('redshift', region_name=region, verify=certifi.where())
-                clusters = redshift.describe_clusters()['Clusters']
-                for cluster in clusters:
-                    table_data.append(['Redshift Cluster', region, cluster['ClusterIdentifier']])
-            spinner(3)
-            print(f"Fetching Redshift clusters..")
-        except Exception as e:
-            print(f"Error fetching Redshift clusters: {e}")
-        
-        # EMR Clusters (Region Based)
-        try:
-            for region in regions:
-                emr = boto3.client('emr', region_name=region, verify=certifi.where())
-                clusters = emr.list_clusters()['Clusters']
-                for cluster in clusters:
-                    table_data.append(['EMR Cluster', region, cluster['Id']])
-            spinner(3)
-            print(f"Fetching EMR clusters..") 
-        except Exception as e:
-            print(f"Error fetching EMR clusters: {e}")
-        
-        # SES Identities (Global)
-        try:
-            ses = boto3.client('ses', verify=certifi.where())
-            identities = ses.list_identities()['Identities']
-            for identity in identities:
-                table_data.append(['SES Identity', 'Global', identity])
-            spinner(3)
-            print(f"Fetching SES identities..") 
-        except Exception as e:
-            print(f"Error fetching SES identities: {e}")
-        
-        # CloudWatch Alarms (Region Based)
-        try:
-            for region in regions:
-                cloudwatch = boto3.client('cloudwatch', region_name=region, verify=certifi.where())
-                alarms = cloudwatch.describe_alarms()['MetricAlarms']
-                for alarm in alarms:
-                    table_data.append(['CloudWatch Alarm', region, alarm['AlarmName']])
-            spinner(3)    
-            print(f"Fetching CloudWatch alarms..")
-        except Exception as e:
-            print(f"Error fetching CloudWatch alarms: {e}")
+def fetch_ecs_clusters():
+    clean.clean()
+    regions = get_all_regions()
+    ecs_data = []
+    for region in regions:
+        ec2 = boto3.client('ecs', region_name=region, verify=certifi.where())
+        print(f"Fetching ECS Clusters in {region}....")
+        clusters = [
+            {"ResourceType": "ECS", "Region": region, "ResourceId": cluster['clusterName'], "State": cluster['status']}
+            for cluster in ec2.list_clusters()['clusterArns']
+        ]
+        ecs_data.extend(clusters)
+    return ecs_data 
 
-        # Display the collected resources in a table
-        if table_data:
-            clean()
-            print("\033[1;34mSummary of Running Resources:\033[0m")
-            print(tabulate(table_data, headers=['Service', 'Region', 'Resource ID'], tablefmt='pretty'))
-        else:
-            print("\nNo running resources found.")
+def fetch_eks_clusters():
+    clean.clean()
+    regions = get_all_regions()
+    eks_data = []
+    for region in regions:
+        ec2 = boto3.client('eks', region_name=region, verify=certifi.where())
+        print(f"Fetching EKS Clusters in {region}....")
+        clusters = [
+            {"ResourceType": "EKS", "Region": region, "ResourceId": cluster['name'], "State": cluster['status']}
+            for cluster in ec2.list_clusters()['clusters']
+        ]
+        eks_data.extend(clusters)
+    return eks_data 
 
-    except NoCredentialsError:
-        print("AWS credentials not found. Please configure them.")
-    except PartialCredentialsError:
-        print("Incomplete AWS credentials. Please check your configuration.")
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+def fetch_redshift_clusters():
+    clean.clean()
+    regions = get_all_regions()
+    redshift_data = []
+    for region in regions:
+        ec2 = boto3.client('redshift', region_name=region, verify=certifi.where())
+        print(f"Fetching Redshift Clusters in {region}....")
+        clusters = [
+            {"ResourceType": "Redshift", "Region": region, "ResourceId": cluster['ClusterIdentifier'], "State": cluster['ClusterStatus']}
+            for cluster in ec2.describe_clusters()['Clusters']
+        ]
+        redshift_data.extend(clusters)
+    return redshift_data    
 
+def fetch_emr_clusters():
+    clean.clean()
+    regions = get_all_regions()
+    emr_data = []
+    for region in regions:
+        ec2 = boto3.client('emr', region_name=region, verify=certifi.where())
+        print(f"Fetching EMR Clusters in {region}....")
+        clusters = [
+            {"ResourceType": "EMR", "Region": region, "ResourceId": cluster['Id'], "State": cluster['Status']['State']}
+            for cluster in ec2.list_clusters()['Clusters']
+        ]
+        emr_data.extend(clusters)
+    return emr_data 
 
-def aws_delete():
-    print("null")
-def aws_monitor():
-    print("null")
-def aws_create():
-    print("null")
+def fetch_cloudwatch_alarms():
+    clean.clean()
+    regions = get_all_regions()
+    cloudwatch_data = []
+    for region in regions:
+        ec2 = boto3.client('cloudwatch', region_name=region, verify=certifi.where())
+        print(f"Fetching CloudWatch Alarms in {region}....")
+        alarms = [
+            {"ResourceType": "CloudWatch", "Region": region, "ResourceId": alarm['AlarmName'], "State": alarm['StateValue']}
+            for alarm in ec2.describe_alarms()['MetricAlarms']
+        ]
+        cloudwatch_data.extend(alarms)
+    return cloudwatch_data  
+
+def fetch_s3_buckets():
+    clean.clean()
+    ec2 = boto3.client('s3', verify=certifi.where())
+    print(f"Fetching S3 Buckets Globally....")
+    spinner.spinner(0.50)
+    buckets = [
+            {"ResourceType": "S3", "Region": "Global", "ResourceId": bucket['Name'], "State": "N/A"}
+            for bucket in ec2.list_buckets()['Buckets']  # Correct key is 'Buckets'
+        ]
+    return buckets  
+
+def fetch_iam_roles():
+    clean.clean()
+    ec2 = boto3.client('iam', verify=certifi.where())
+    print(f"Fetching IAM Roles Globally....")
+    spinner.spinner(0.50)
+    roles = [
+        {"ResourceType": "IAM", "Region": "Global", "ResourceId": role['RoleName'], "State": "N/A"}
+        for role in ec2.list_roles()['Roles']
+    ]
+    return roles    
+
+def fetch_ses_identities():
+    clean.clean()
+    ec2 = boto3.client('ses', region_name='us-east-1', verify=certifi.where())
+    print(f"Fetching SES Identities Globally....")
+    spinner.spinner(0.50)
+    identities = [
+        {"ResourceType": "SES", "Region": "Global", "ResourceId": identity['IdentityName'], "State": "N/A"}
+        for identity in ec2.list_identities()['Identities']
+    ]
+    return identities   
+
+def all_services():
+    clean.clean()
+    spinner.spinner(0.50)
+    ec2_data = fetch_ec2_instances()
+    ebs_data = fetch_ebs_volumes()
+    lambda_data = fetch_lambda_functions()
+    rds_data = fetch_rds_instances()
+    dynamodb_data = fetch_dynamodb_tables()
+    elasticbeanstalk_data = fetch_elastic_beanstalk_environments()
+    elb_data = fetch_elastic_load_balancers()
+    apigateway_data = fetch_api_gateways()
+    ecs_data = fetch_ecs_clusters()
+    eks_data = fetch_eks_clusters()
+    redshift_data = fetch_redshift_clusters()
+    emr_data = fetch_emr_clusters()
+    cloudwatch_data = fetch_cloudwatch_alarms()
+    s3_data = fetch_s3_buckets()
+    iam_data = fetch_iam_roles()
+    ses_data = fetch_ses_identities()
+
+    all_data = ec2_data + ebs_data + lambda_data + rds_data + dynamodb_data + elasticbeanstalk_data + elb_data + apigateway_data + ecs_data + eks_data + redshift_data + emr_data + cloudwatch_data + s3_data + iam_data + ses_data
+
+    return all_data 
+
