@@ -1,6 +1,8 @@
 import boto3
 import certifi
+import os
 import cleansweep.spinner as spinner
+from botocore.exceptions import ClientError
 import cleansweep.clean_terminal as clean
 
 
@@ -494,22 +496,6 @@ def delete_s3_buckets(bucket_names):
     except Exception as e:
         print(f"Error deleting buckets: {str(e)}")  
 
-def delete_iam_roles(role_names):
-    """
-    Deletes specified IAM roles.
-
-    Parameters:
-        role_names (list): List of IAM role names to delete.
-    """
-    iam = boto3.client('iam', verify=certifi.where())
-    try:
-        print(f"Deleting IAM roles: {', '.join(role_names)}...")
-        for role_name in role_names:
-            iam.delete_role(RoleName=role_name)
-            print(f"Role {role_name} deleted successfully.")
-    except Exception as e:
-        print(f"Error deleting roles: {str(e)}")    
-
 def delete_ses_identities(identity_names):
     """
     Deletes specified SES identities.
@@ -544,3 +530,120 @@ def delete_cloudwatch_alarms(alarm_names, region):
         print(f"Error deleting alarms: {str(e)}")   
 
 
+'''
+-------------------------------------------------------------------------------------------------------------
+'''
+
+#Create AWS Resources. 
+
+def create_ec2_instance():
+    """Launch EC2 instances with user data, IP retrieval, and dynamic key pair handling."""
+    region = input("Enter the region (eg. ap-south-1): ")
+    instance_name = input("Enter the name for the instances (eg. MyEc2Instance): ")
+    ami_id = input("Enter the AMI ID (eg.  ami-0614680123427b75e): ")
+    instance_type = input("Enter the instance type (e.g., t2.micro): ")
+    count = int(input("Enter the number of instances to launch: "))
+    use_existing_key = input("Use an existing key pair? (y/n): ").lower() == 'y'
+
+    ec2_client = boto3.client('ec2', region_name=region)
+
+    # Key Pair Handling
+    if use_existing_key:
+        print("\nFetching available key pairs...")
+        try:
+            key_pairs = ec2_client.describe_key_pairs()['KeyPairs']
+            if not key_pairs:
+                print("No key pairs found. Please create one in the AWS Management Console.")
+                return
+            print("\nAvailable Key Pairs:")
+            for i, kp in enumerate(key_pairs):
+                print(f"{i + 1}. {kp['KeyName']}")
+            key_index = int(input("Select a key pair by number: ")) - 1
+            key_name = key_pairs[key_index]['KeyName']
+
+            # Warn if the private key file isn't available locally
+            pem_file = f"{key_name}.pem"
+            if not os.path.exists(pem_file):
+                print(f"WARNING: Private key file '{pem_file}' not found locally. Connection might fail.")
+        except Exception as e:
+            print(f"Error fetching key pairs: {e}")
+            return
+    else:
+        # Create a new key pair dynamically
+        key_name = input("Enter a name for the new key pair: ")
+        key_save_path = input("Enter the path where you want to save the key pair: ").strip()
+
+        # Validate the directory
+        if not os.path.exists(key_save_path):
+            print(f"Directory '{key_save_path}' does not exist.")
+            create_dir = input("Do you want to create this directory? (y/n): ").lower()
+            if create_dir == 'y':
+                try:
+                    os.makedirs(key_save_path)
+                    print(f"Directory '{key_save_path}' created.")
+                except Exception as e:
+                    print(f"Error creating directory: {e}")
+                    return
+            else:
+                print("Operation canceled.")
+                return
+
+        try:
+            key_pair = ec2_client.create_key_pair(KeyName=key_name)
+            pem_file_path = os.path.join(key_save_path, f"{key_name}.pem")
+            with open(pem_file_path, "w") as file:
+                file.write(key_pair['KeyMaterial'])
+            os.chmod(pem_file_path, 0o400)  # Set appropriate permissions for the key file
+            print(f"Key pair '{key_name}' created and saved as '{pem_file_path}'.")
+        except Exception as e:
+            print(f"Error creating key pair: {e}")
+            return
+
+    # Security Group Selection
+    print("\nFetching available security groups...")
+    try:
+        security_groups = ec2_client.describe_security_groups()['SecurityGroups']
+        if not security_groups:
+            print("No security groups found. Please create one in the AWS Management Console.")
+            return
+        print("\nAvailable Security Groups:")
+        for i, sg in enumerate(security_groups):
+            print(f"{i + 1}. {sg['GroupName']} ({sg['GroupId']})")
+        sg_index = int(input("Select a security group by number: ")) - 1
+        security_group_id = security_groups[sg_index]['GroupId']
+    except Exception as e:
+        print(f"Error fetching security groups: {e}")
+        return
+
+    # Optional User Data
+
+    # Launch the instance(s)
+    try:
+        response = ec2_client.run_instances(
+            ImageId=ami_id,
+            InstanceType=instance_type,
+            KeyName=key_name,
+            SecurityGroupIds=[security_group_id],
+            MinCount=1,
+            MaxCount=count,
+        )
+
+        instance_ids = [instance['InstanceId'] for instance in response['Instances']]
+        
+        # Add a tag with the Name key
+        ec2_client.create_tags(
+            Resources=instance_ids,
+            Tags=[{'Key': 'Name', 'Value': instance_name}]
+        )
+
+        # Fetch public IP addresses
+        print("\nFetching instance details...")
+        reservations = ec2_client.describe_instances(InstanceIds=instance_ids)['Reservations']
+        for reservation in reservations:
+            for instance in reservation['Instances']:
+                public_ip = instance.get('PublicIpAddress', 'N/A')
+                print(f"Instance ID: {instance['InstanceId']}, Public IP: {public_ip}")
+    except ClientError as e:
+        print(f"Error launching EC2 instances: {e.response['Error']['Message']}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")

@@ -1,0 +1,8 @@
+[
+    {
+        "ResourceType": "EC2",
+        "Region": "ap-south-1",
+        "ResourceId": "i-03d599b2bf0e0e8ce",
+        "State": "running"
+    }
+]

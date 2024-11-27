@@ -363,7 +363,7 @@ def main_menu():
         elif choice == "2":
             aws_delete()
         elif choice == "3":
-            print(0)
+            aws_resources.create_ec2_instance()
         elif choice == "4":
             print("Work in progress... this feature is not available at this moment.")
         elif choice in ["x", "X"]:
