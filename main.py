@@ -6,6 +6,155 @@ import cleansweep.display_utils as display_utils
 
 # Create a choice of options
 
+def aws_delete():
+    while True:
+        clean.clean()
+        spinner.spinner(0.50)
+        print("\033[1;31m----------------Delete AWS Resources------------------\033[0m")
+        print("[01] │ Delete EC2 Instances")
+        print("[02] │ Delete EBS Volumes")
+        print("[03] │ Delete Lambda Functions")        
+        print("[04] │ Delete RDS Instance")
+        print("[05] │ Delete DynamoDB Tables")
+        print("[06] │ Delete Elastic Beanstalk")
+        print("[07] │ Delete ELastic LoadBalancer")        
+        print("[08] │ Delete API Gateways")
+        print("[09] │ Delete ECS Clusters")
+        print("[10] │ Delete EKS Clusters")
+        print("[11] │ Delete Redshift Clusters")
+        print("[12] │ Delete EMR Clusters")
+        print("[13] │ Delete CloudWatch Alarms")
+        print("[14] │ Delete S3 Buckets")
+        print("[15] │ Delete SES Identities")
+        print("\n")
+        choice = input("Choose an option (1-16) or go to [M]ain Menu: ")
+        
+        if choice == '1':
+            ec2_data = aws_resources.fetch_ec2_instances()
+            display_utils.display_table(ec2_data)
+            if not ec2_data:
+                return
+            instance_ids = input("Enter EC2 instance IDs to delete (comma-separated): ").split(',')
+            region = input("Enter the AWS region of these instances: ")
+            aws_resources.delete_ec2_instances(instance_ids, region) 
+        elif choice == '2':
+            ebs_data = aws_resources.fetch_ebs_volumes()
+            display_utils.display_table(ebs_data)
+            if not ebs_data:
+                return
+            volume_ids = input("Enter EBS volume IDs to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these volumes: ")
+            aws_resources.delete_ebs_volumes(volume_ids, region)
+        elif choice == '3':
+            lambda_data = aws_resources.fetch_lambda_functions()
+            display_utils.display_table(lambda_data)
+            if not lambda_data:
+                return
+            function_names = input("Enter Lambda function names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these functions: ")
+            aws_resources.delete_lambda_functions(function_names, region)
+        elif choice == '4':
+            rds_data = aws_resources.fetch_rds_instances()
+            display_utils.display_table(rds_data)
+            if not rds_data:
+                return
+            instance_ids = input("Enter RDS instance IDs to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these instances: ")
+            aws_resources.delete_rds_instances(instance_ids, region)    
+        elif choice == '5':
+            dynamodb_data = aws_resources.fetch_dynamodb_tables()
+            display_utils.display_table(dynamodb_data)
+            if not dynamodb_data:
+                return
+            table_names = input("Enter DynamoDB table names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these tables: ")
+            aws_resources.delete_dynamodb_tables(table_names, region)
+        elif choice == '6':
+            elasticbeanstalk_data = aws_resources.fetch_elastic_beanstalk_environments()
+            display_utils.display_table(elasticbeanstalk_data)
+            if not elasticbeanstalk_data:
+                return
+            environment_names = input("Enter Elastic Beanstalk environment names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these environments: ")
+            aws_resources.delete_elastic_beanstalk_environments(environment_names, region)  
+        elif choice == '7':
+            elb_data = aws_resources.fetch_elastic_load_balancers()
+            display_utils.display_table(elb_data)
+            if not elb_data:
+                return
+            load_balancer_names = input("Enter Elastic Load Balancer names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these load balancers: ")
+            aws_resources.delete_elastic_load_balancers(load_balancer_names, region)    
+        elif choice == '8':
+            apigateway_data = aws_resources.fetch_api_gateways()
+            display_utils.display_table(apigateway_data)
+            if not apigateway_data:
+                return
+            api_names = input("Enter API Gateway names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these APIs: ")
+            aws_resources.delete_api_gateways(api_names, region)    
+        elif choice == '9':
+            ecs_data = aws_resources.fetch_ecs_clusters()
+            display_utils.display_table(ecs_data)
+            if not ecs_data:
+                return
+            cluster_names = input("Enter ECS cluster names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these clusters: ")
+            aws_resources.delete_ecs_clusters(cluster_names, region)    
+        elif choice == '10':
+            eks_data = aws_resources.fetch_eks_clusters()
+            display_utils.display_table(eks_data)
+            if not eks_data:
+                return
+            cluster_names = input("Enter EKS cluster names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these clusters: ")
+            aws_resources.delete_eks_clusters(cluster_names, region)    
+        elif choice == '11':
+            redshift_data = aws_resources.fetch_redshift_clusters()
+            display_utils.display_table(redshift_data)
+            if not redshift_data:
+                return
+            cluster_ids = input("Enter Redshift cluster IDs to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these clusters: ")
+            aws_resources.delete_redshift_clusters(cluster_ids, region)
+        elif choice == '12':
+            emr_data = aws_resources.fetch_emr_clusters()
+            display_utils.display_table(emr_data)
+            if not emr_data:
+                return
+            cluster_ids = input("Enter EMR cluster IDs to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these clusters: ")
+            aws_resources.delete_emr_clusters(cluster_ids, region)  
+        elif choice == '13':
+            cloudwatch_data = aws_resources.fetch_cloudwatch_alarms()
+            display_utils.display_table(cloudwatch_data)
+            if not cloudwatch_data:
+                return
+            alarm_names = input("Enter CloudWatch alarm names to delete (comma-separated): ").split(', ')
+            region = input("Enter the AWS region of these alarms: ")
+            aws_resources.delete_cloudwatch_alarms(alarm_names, region) 
+        elif choice == '14':
+            s3_data = aws_resources.fetch_s3_buckets()
+            display_utils.display_table(s3_data)
+            if not s3_data:
+                return
+            bucket_names = input("Enter S3 bucket names to delete (comma-separated): ").split(', ')
+            aws_resources.delete_s3_buckets(bucket_names) 
+        elif choice == '15':
+            ses_data = aws_resources.fetch_ses_identities()
+            display_utils.display_table(ses_data)
+            if not ses_data:
+                return
+            identity_names = input("Enter SES identity names to delete (comma-separated): ").split(', ')
+            aws_resources.delete_ses_identities(identity_names)       
+        elif choice in ["M","m"]:
+            main_menu()
+        else:
+            print("Invalid choice. Please try again.")
+        input("\nPress Enter to return to the menu...")
+
+
+
 def aws_fetch():
     while True:
         clean.clean()
@@ -33,6 +182,8 @@ def aws_fetch():
         if choice == '1':
             ec2_data = aws_resources.fetch_ec2_instances()
             display_utils.display_table(ec2_data)
+            if not ec2_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(ec2_data, "ec2_instances.json")
@@ -40,6 +191,8 @@ def aws_fetch():
         elif choice == '2':
             ebs_data = aws_resources.fetch_ebs_volumes()
             display_utils.display_table(ebs_data)
+            if not ebs_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(ebs_data, "ebs_volumes.json")
@@ -47,6 +200,8 @@ def aws_fetch():
         elif choice == '3':
             lambda_data = aws_resources.fetch_lambda_functions()
             display_utils.display_table(lambda_data)
+            if not lambda_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(lambda_data, "lambda_functions.json")
@@ -54,6 +209,8 @@ def aws_fetch():
         elif choice == '4':
             rds_data = aws_resources.fetch_rds_instances()
             display_utils.display_table(rds_data)
+            if not rds_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(rds_data, "rds_instances.json")
@@ -61,6 +218,8 @@ def aws_fetch():
         elif choice == '5':
             dynamodb_data = aws_resources.fetch_dynamodb_tables()
             display_utils.display_table(dynamodb_data)
+            if not dynamodb_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(dynamodb_data, "dynamodb_tables.json")
@@ -68,6 +227,8 @@ def aws_fetch():
         elif choice == '6':
             elasticbeanstalk_data = aws_resources.fetch_elastic_beanstalk_environments()
             display_utils.display_table(elasticbeanstalk_data)
+            if not elasticbeanstalk_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(elasticbeanstalk_data, "elastic_beanstalk_environments.json")
@@ -75,6 +236,8 @@ def aws_fetch():
         elif choice == '7':
             elb_data = aws_resources.fetch_elastic_load_balancers()
             display_utils.display_table(elb_data)
+            if not elb_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(elb_data, "elastic_load_balancers.json")
@@ -82,6 +245,8 @@ def aws_fetch():
         elif choice == '8':
             apigateway_data = aws_resources.fetch_api_gateways()
             display_utils.display_table(apigateway_data)
+            if not apigateway_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(apigateway_data, "api_gateways.json")
@@ -89,6 +254,8 @@ def aws_fetch():
         elif choice == '9':
             ecs_data = aws_resources.fetch_ecs_clusters()
             display_utils.display_table(ecs_data)
+            if not ecs_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(ecs_data, "ecs_clusters.json")
@@ -96,6 +263,8 @@ def aws_fetch():
         elif choice == '10':
             eks_data = aws_resources.fetch_eks_clusters()
             display_utils.display_table(eks_data)
+            if not eks_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(eks_data, "eks_clusters.json")
@@ -103,6 +272,8 @@ def aws_fetch():
         elif choice == '11':
             redshift_data = aws_resources.fetch_redshift_clusters()
             display_utils.display_table(redshift_data)
+            if not redshift_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(redshift_data, "redshift_clusters.json")
@@ -110,6 +281,8 @@ def aws_fetch():
         elif choice == '12':
             emr_data = aws_resources.fetch_emr_clusters()
             display_utils.display_table(emr_data)
+            if not emr_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(emr_data, "emr_clusters.json")
@@ -117,6 +290,8 @@ def aws_fetch():
         elif choice == '13':
             cloudwatch_data = aws_resources.fetch_cloudwatch_alarms()
             display_utils.display_table(cloudwatch_data)
+            if not cloudwatch_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(cloudwatch_data, "cloudwatch_alarms.json")
@@ -124,6 +299,8 @@ def aws_fetch():
         elif choice == '14':
             s3_data = aws_resources.fetch_s3_buckets()
             display_utils.display_table(s3_data)
+            if not s3_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(s3_data, "s3_buckets.json")
@@ -131,6 +308,8 @@ def aws_fetch():
         elif choice == '15':
             iam_data = aws_resources.fetch_iam_roles()
             display_utils.display_table(iam_data)
+            if not iam_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(iam_data, "iam_roles.json")
@@ -138,6 +317,8 @@ def aws_fetch():
         elif choice == '16':
             ses_data = aws_resources.fetch_ses_identities()
             display_utils.display_table(ses_data)
+            if not ses_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(ses_data, "ses_identities.json")
@@ -145,6 +326,8 @@ def aws_fetch():
         elif choice == '17':
             all_data = aws_resources.all_services()
             display_utils.display_table(all_data)
+            if not all_data:
+                return
             save_option = input("\nSave to JSON? (y/n): ")
             if save_option.lower() == 'y':
                 display_utils.save_to_json(all_data, "all_services.json")
@@ -168,7 +351,7 @@ def main_menu():
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
         print("│   1    │ Check Running Resources                   │ Get All Services from Regions & Globaly│")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
-        print("│   2    │ Delete Resources                          │ Delete/stop running services           │")
+        print("│   2    │ Delete Resources                          │ Delete running services                │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
         print("│   3    │ Create Resources                          │ Create Services like Ec2, S3, etc.     │")
         print("├────────┼────────────────────────────────────────────────────────────────────────────────────┤")
@@ -178,11 +361,11 @@ def main_menu():
         if choice == "1":
             aws_fetch()
         elif choice == "2":
-            print(0)
+            aws_delete()
         elif choice == "3":
             print(0)
         elif choice == "4":
-            print(0)
+            print("Work in progress... this feature is not available at this moment.")
         elif choice in ["x", "X"]:
             clean.clean()
             print("Exiting...")
