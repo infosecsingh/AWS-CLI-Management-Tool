@@ -3,6 +3,7 @@ import cleansweep.aws_resources as aws_resources
 import cleansweep.spinner as spinner
 import cleansweep.clean_terminal as clean
 import cleansweep.display_utils as display_utils
+import cleansweep.create_resources as create_resources
 
 # Create a choice of options
 
@@ -363,7 +364,7 @@ def main_menu():
         elif choice == "2":
             aws_delete()
         elif choice == "3":
-            aws_resources.create_ec2_instance()
+            create_resources.create_ec2_instance()
         elif choice == "4":
             print("Work in progress... this feature is not available at this moment.")
         elif choice in ["x", "X"]:

@@ -1,0 +1,13 @@
+# key_pair 
+
+- 1 - Pem permission 
+
+Permissions for 'My_Key_pair_test.pem' are too open.
+It is required that your private key files are NOT accessible by others.
+This private key will be ignored.
+Load key "My_Key_pair_test.pem": bad permissions
+
+2 . PPK, format is older not supported for AWS 
+
+
+3. Not able to retreieve Public IP and giving error however it is able to create iinstance. 

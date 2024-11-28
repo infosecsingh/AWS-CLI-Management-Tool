@@ -3,8 +3,12 @@ import paramiko
 import io
 import os
 from botocore.exceptions import ClientError
+import cleansweep.clean_terminal as clean
+import cleansweep.spinner as spinner
 
-def get_or_create_key_pair(ec2_client):
+
+
+def key_pair(ec2_client):
     """
     Check for existing key pairs or create a new one. Offers options for saving as .pem or .ppk.
     """
@@ -63,47 +67,74 @@ def get_or_create_key_pair(ec2_client):
     except Exception as e:
         print(f"Unexpected error: {e}")
         return None, None
+    
+
+        
 
 # Example usage
 def create_ec2_instance():
+    clean.clean()
+    spinner.spinner(0.5)
     """Launch EC2 instances with user-provided or newly generated key pair."""
-    region = input("Enter the AWS region: ")
+    region = input("Enter the AWS region (e.g, ap-south-1): ")
     ec2_client = boto3.client('ec2', region_name=region)
 
     # Get or create key pair
-    key_name, key_path = get_or_create_key_pair(ec2_client)
+    key_name, key_path = key_pair(ec2_client)
     if not key_name:
         print("Key pair setup failed. Exiting...")
         return
+    instance_name = input("Enter the name for the instances (eg. MyEc2Instance): ")
+    ami_id = input("Enter the AMI ID (e.g, ami-0614680123427b75e): ")
+    instance_type = input("Enter the instance type (e.g, t2.micro): ")
+    count = int(input("Enter the number of instances to launch: "))
+    
+    # user_data = input("Enter user-data script (leave empty for none): ")
 
-    ami_id = input("Enter the AMI ID: ")
-    instance_type = input("Enter the instance type: ")
-    security_group = input("Enter the security group ID: ")
-    user_data = input("Enter user-data script (leave empty for none): ")
+     # Security Group Selection
+    print("\nFetching available security groups...")
+    try:
+        security_groups = ec2_client.describe_security_groups()['SecurityGroups']
+        if not security_groups:
+            print("No security groups found. Please create one in the AWS Management Console.")
+            return
+        print("\nAvailable Security Groups:")
+        for i, sg in enumerate(security_groups):
+            print(f"{i + 1}. {sg['GroupName']} ({sg['GroupId']})")
+        sg_index = int(input("Select a security group by number: ")) - 1
+        security_group_id = security_groups[sg_index]['GroupId']
+    except Exception as e:
+        print(f"Error fetching security groups: {e}")
+        return
 
     try:
         response = ec2_client.run_instances(
             ImageId=ami_id,
             InstanceType=instance_type,
             KeyName=key_name,
-            SecurityGroupIds=[security_group],
+            SecurityGroupIds=[security_group_id],
             MinCount=1,
-            MaxCount=1,
-            UserData=user_data or None,
+            MaxCount=count,
         )
-
+        instance_ids = [instance['InstanceId'] for instance in response['Instances']]
+                # Add a tag with the Name key
+        ec2_client.create_tags(
+            Resources=instance_ids,
+            Tags=[{'Key': 'Name', 'Value': instance_name}]
+        )
+        # Wait for the instances to be running and get their public IP
+        waiter = ec2_client.get_waiter('instance_running')
+        spinner.spinner(1.0) # Wait for the instances to be running
+        waiter.wait(InstanceIds=instance_ids)
         instance_id = response['Instances'][0]['InstanceId']
         public_ip = response['Instances'][0]['PublicIpAddress']
-
         print(f"Successfully launched EC2 instance: {instance_id}")
         print(f"Public IP Address: {public_ip}")
         if key_path:
             print(f"Use the private key at {key_path} to connect.")
-
     except ClientError as e:
-        print(f"Error launching EC2 instance: {e.response['Error']['Message']}")
+        print(f"EC2 instance: {e.response['Error']['Message']}")
     except Exception as e:
         print(f"Unexpected error: {e}")
 
 
-create_ec2_instance()
