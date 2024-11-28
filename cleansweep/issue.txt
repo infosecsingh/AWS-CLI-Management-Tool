@@ -11,3 +11,8 @@ Load key "My_Key_pair_test.pem": bad permissions
 
 
 3. Not able to retreieve Public IP and giving error however it is able to create iinstance. 
+
+Also need to grab the username for iinstance 
+
+
+Also for instance, we need to add IP
