@@ -90,6 +90,7 @@ def create_ec2_instance():
     ami_id = input("Enter the AMI ID (e.g., ami-0614680123427b75e): ")
     instance_type = input("Enter the instance type (e.g., t2.micro): ")
     count = int(input("Enter the number of instances to launch: "))
+    ebs_volume_size = int(input("Enter the EBS volume size in GB (e.g., 8): "))
 
     # Security group selection
     try:
@@ -119,14 +120,27 @@ def create_ec2_instance():
             SecurityGroupIds=[security_group_id],
             MinCount=1,
             MaxCount=count,
+            BlockDeviceMappings=[
+                {
+                    'DeviceName': '/dev/xvda',
+                    'Ebs': {
+                        'VolumeSize': ebs_volume_size,
+                        'DeleteOnTermination': True,
+                        'VolumeType': 'gp2'
+                    }
+                }
+            ],
         )
         instance_ids = [instance['InstanceId'] for instance in response['Instances']]
 
-        # Tag the instance(s)
-        ec2_client.create_tags(
-            Resources=instance_ids,
-            Tags=[{'Key': 'Name', 'Value': instance_name}]
-        )
+        # Tag the instance(s) with unique names
+        for i, instance_id in enumerate(instance_ids):
+            instance_tag = f"{instance_name}-{i + 1}"  # Incremental tag names
+            ec2_client.create_tags(
+                Resources=[instance_id],
+                Tags=[{'Key': 'Name', 'Value': instance_tag}]
+            )
+            print(f"Instance {instance_id} tagged as {instance_tag}")
 
         print(f"Launching EC2 instance(s): {', '.join(instance_ids)}")
 
@@ -143,6 +157,7 @@ def create_ec2_instance():
             username = suggest_username(ami_id)
 
             print(f"\nInstance ID: {instance_id}")
+            print(f"Tag Name: {instance_tag}")
             print(f"Public IP Address: {public_ip}")
             print(f"Suggested Username: {username}")
             if key_path:
