@@ -7,9 +7,33 @@ import cleansweep.create_resources as create_resources
 
 # Create a choice of options
 
+def aws_create():
+    while True:
+        clean.clean()
+        print("\n")
+        spinner.spinner(0.50)
+        print("\033[1;35m----------------Create AWS Resources------------------\033[0m")
+        print("[01] │ Create EC2 Instances")
+        print("[02] │ Create S3 Buckets")
+        print("[03] │ Create Lambda Functions")
+        print("\n")
+        choice = input("Choose an option (1-3) or go to [M]ain Menu: ")
+
+        if choice == '1':
+            create_resources.create_ec2_instance()
+        elif choice == '2':
+            create_resources.create_s3_bucket()
+        elif choice == '3':
+            create_resources.create_lambda()
+        elif choice in ['M','m']:
+            main_menu()
+            break
+        else:
+            print("Invalid choice. Please try again.")
 def aws_delete():
     while True:
         clean.clean()
+        print("\n")
         spinner.spinner(0.50)
         print("\033[1;31m----------------Delete AWS Resources------------------\033[0m")
         print("[01] │ Delete EC2 Instances")
@@ -28,7 +52,7 @@ def aws_delete():
         print("[14] │ Delete S3 Buckets")
         print("[15] │ Delete SES Identities")
         print("\n")
-        choice = input("Choose an option (1-16) or go to [M]ain Menu: ")
+        choice = input("Choose an option (1-15) or go to [M]ain Menu: ")
         
         if choice == '1':
             ec2_data = aws_resources.fetch_ec2_instances()
@@ -159,6 +183,7 @@ def aws_delete():
 def aws_fetch():
     while True:
         clean.clean()
+        print("\n")
         spinner.spinner(0.50)
         print("\033[1;34m----------------Check AWS Resources------------------\033[0m")
         print("[01] │ EC2 Instances         - Fetch From All Regions")
@@ -345,7 +370,7 @@ def main_menu():
         clean.clean() 
         spinner.spinner(0.70)       
         print("┌─────────────────────────────────────────────────────────────────────────────────────────────┐")
-        print("│                           \033[1mAWS Clean Sweep CLI Tool\033[0m                                          │")
+        print("│                           \033[1;36mAWS CLEAN SWEEP CLI TOOL\033[0m                                          │")
         print("│                          developed by: infosecsingh                                         │")
         print("├────────┬────────────────────────────────────────────────────────────────────────────────────┤")
         print("│ \033[1;34mOption\033[0m │                          \033[1;34mDescription\033[0m                                               │")
@@ -364,7 +389,7 @@ def main_menu():
         elif choice == "2":
             aws_delete()
         elif choice == "3":
-            create_resources.create_ec2_instance()
+            aws_create()
         elif choice == "4":
             print("Work in progress... this feature is not available at this moment.")
         elif choice in ["x", "X"]:

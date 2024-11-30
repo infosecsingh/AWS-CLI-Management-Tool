@@ -27,7 +27,13 @@ def fetch_ec2_instances():
         ec2 = boto3.resource('ec2', region_name=region, verify=certifi.where())
         print(f"Fetching EC2 instances in {region}....")
         running_instances = [
-            {"ResourceType": "EC2", "Region": region, "ResourceId": instance.id, "State": instance.state['Name']}
+            {
+                "ResourceType": "EC2",
+                "Region": region,
+                "ResourceId": instance.id,
+                "PublicIP": instance.public_ip_address or "N/A",
+                "State": instance.state['Name']
+            }
             for instance in ec2.instances.all()
             if instance.state['Name'] == 'running'
         ]

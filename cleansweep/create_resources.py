@@ -4,6 +4,7 @@ import io
 from botocore.exceptions import ClientError
 import cleansweep.clean_terminal as clean
 import cleansweep.spinner as spinner
+from cleansweep.display_utils import save_to_json
 
 # Common username mappings for popular AMIs
 AMI_USERNAMES = {
@@ -72,11 +73,14 @@ def key_pair(ec2_client):
 
 def create_ec2_instance():
     """
-    Launches an EC2 instance interactively, sets up security groups, key pairs, and provides connection details.
+    Launches an EC2 instance interactively, sets up security groups, key pairs, 
+    and provides connection details. Saves instance details to a JSON file.
     """
     clean.clean()
     spinner.spinner(0.5)
-
+    print("\n")
+    print("\033[1;35mLaunching EC2 instance...\033[0m")
+    print("\033[1;35m--------------------------\033[0m")    
     # User inputs for instance creation
     region = input("Enter the AWS region (e.g., ap-south-1): ")
     ec2_client = boto3.client('ec2', region_name=region)
@@ -149,23 +153,39 @@ def create_ec2_instance():
         spinner.spinner(1.0)
         waiter.wait(InstanceIds=instance_ids)
 
-        # Retrieve public IPs and suggest usernames
+        # Gather instance details for saving
+        instance_details = []
         for instance_id in instance_ids:
             instance_info = ec2_client.describe_instances(InstanceIds=[instance_id])
             instance = instance_info['Reservations'][0]['Instances'][0]
             public_ip = instance.get('PublicIpAddress', "N/A")
             username = suggest_username(ami_id)
-
-            print(f"\nInstance ID: {instance_id}")
-            print(f"Tag Name: {instance_tag}")
-            print(f"Public IP Address: {public_ip}")
-            print(f"Suggested Username: {username}")
+            tag_name = f"{instance_name}-{instance_ids.index(instance_id) + 1}"
+            clean.clean()
+            spinner.spinner(0.5)
+            print("\033[1;29mEc2 Instance Created\033[0m")
+            print(f"\033[1;35mInstance ID:\033[0m {instance_id}")
+            print(f"\033[1;35mTag Name:\033[0m {tag_name}")
+            print(f"\033[1;35mPublic IP Address:\033[0m {public_ip}")
+            print(f"\033[1;35mSuggested Username:\033[0m {username}")
             if key_path:
                 print(f"Use the private key at {key_path} to connect:")
                 if public_ip != "N/A":
                     print(f"  ssh -i {key_path} {username}@{public_ip}")
                 else:
                     print(f"  Instance does not have a public IP. Use a bastion host or private network to connect.")
+
+            # Append details for JSON
+            instance_details.append({
+                "InstanceId": instance_id,
+                "TagName": tag_name,
+                "PublicIpAddress": public_ip,
+                "Username": username,
+                "KeyPath": key_path
+            })
+
+        # Save instance details to JSON
+        save_to_json(instance_details)
 
         return instance_ids
     except ClientError as e:
