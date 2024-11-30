@@ -51,8 +51,9 @@ def aws_delete():
         print("[13] │ Delete CloudWatch Alarms")
         print("[14] │ Delete S3 Buckets")
         print("[15] │ Delete SES Identities")
+        print("[16] │ Delete Security Key Pairs")
         print("\n")
-        choice = input("Choose an option (1-15) or go to [M]ain Menu: ")
+        choice = input("Choose an option (1-16) or go to [M]ain Menu: ")
         
         if choice == '1':
             ec2_data = aws_resources.fetch_ec2_instances()
@@ -171,7 +172,10 @@ def aws_delete():
             if not ses_data:
                 return
             identity_names = input("Enter SES identity names to delete (comma-separated): ").split(', ')
-            aws_resources.delete_ses_identities(identity_names)       
+            aws_resources.delete_ses_identities(identity_names)  
+        elif choice == '16':
+            aws_resources.delete_api_gateways()
+               
         elif choice in ["M","m"]:
             main_menu()
         else:

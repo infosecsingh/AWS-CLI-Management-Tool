@@ -147,10 +147,9 @@ def create_ec2_instance():
             print(f"Instance {instance_id} tagged as {instance_tag}")
 
         print(f"Launching EC2 instance(s): {', '.join(instance_ids)}")
-
+        spinner.spinner(2)
         # Wait for the instances to be running
         waiter = ec2_client.get_waiter('instance_running')
-        spinner.spinner(1.0)
         waiter.wait(InstanceIds=instance_ids)
 
         # Gather instance details for saving
@@ -171,7 +170,8 @@ def create_ec2_instance():
             if key_path:
                 print(f"Use the private key at {key_path} to connect:")
                 if public_ip != "N/A":
-                    print(f"  ssh -i {key_path} {username}@{public_ip}")
+                    print("\n","\033[1;31mNOTE:\033[0m","\033[1;38m If you are getting a bad permission error while connecting,then please use --\033[0m","\033[1;32mGIT BASH Tool\033[0m")
+                    print("\n",f"  ssh -i {key_path} {username}@{public_ip}")
                 else:
                     print(f"  Instance does not have a public IP. Use a bastion host or private network to connect.")
 
@@ -183,10 +183,10 @@ def create_ec2_instance():
                 "Username": username,
                 "KeyPath": key_path
             })
-
-        # Save instance details to JSON
-        save_to_json(instance_details)
-
+        save_option = input("\nDo you want to save instance details to a JSON file? (y/n): ").lower()
+        if save_option == 'y':
+            save_to_json(instance_details)
+            return save_to_json
         return instance_ids
     except ClientError as e:
         print(f"EC2 instance creation error: {e.response['Error']['Message']}")

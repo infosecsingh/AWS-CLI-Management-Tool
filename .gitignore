@@ -1,0 +1,6 @@
+# ignore all .a files
+*.json
+
+#test Env 
+test1.py
+test.py

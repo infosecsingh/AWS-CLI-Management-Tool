@@ -1,7 +1,6 @@
 import boto3
 import certifi
 import os
-import paramiko
 import cleansweep.spinner as spinner
 from botocore.exceptions import ClientError
 import cleansweep.clean_terminal as clean
@@ -30,7 +29,7 @@ def fetch_ec2_instances():
             {
                 "ResourceType": "EC2",
                 "Region": region,
-                "ResourceId": instance.id,
+                "InstanceID": instance.id,
                 "PublicIP": instance.public_ip_address or "N/A",
                 "State": instance.state['Name']
             }
@@ -484,6 +483,8 @@ def delete_emr_clusters(cluster_ids, region):
             print(f"Cluster {cluster_id} deleted successfully.")
     except Exception as e:
         print(f"Error deleting EMR clusters: {str(e)}") 
+
+
 
 def delete_s3_buckets(bucket_names):
     """
