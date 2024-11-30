@@ -214,11 +214,6 @@ def is_valid_bucket_name(bucket_name):
     return True
 
 
-import boto3
-from botocore.exceptions import ClientError
-import re
-import certifi
-
 def is_valid_bucket_name(bucket_name):
     """
     Validates the S3 bucket name.
@@ -318,9 +313,7 @@ def create_s3_bucket():
             s3= bucket_name + upload_objects
             if save_option == 'y':
                 save_to_json(s3)
-            print("\033[1;32mAll files uploaded successfully.\033[0m")
-            
-            
+            print("\033[1;32mAll files uploaded successfully.\033[0m")      
 
     except ClientError as e:
         print(f"\033[1;31mError creating bucket: {e.response['Error']['Message']}\033[0m")
