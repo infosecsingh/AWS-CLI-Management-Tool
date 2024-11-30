@@ -1,6 +1,8 @@
 import boto3
 import os
 import io
+import botocore
+import certifi
 from botocore.exceptions import ClientError
 import cleansweep.clean_terminal as clean
 import cleansweep.spinner as spinner
@@ -71,6 +73,9 @@ def key_pair(ec2_client):
         print(f"Unexpected error: {e}")
         return None, None
 
+'''
+----------------------------------------------------------------------------------------------------------------------
+'''
 def create_ec2_instance():
     """
     Launches an EC2 instance interactively, sets up security groups, key pairs, 
@@ -192,3 +197,134 @@ def create_ec2_instance():
         print(f"EC2 instance creation error: {e.response['Error']['Message']}")
     except Exception as e:
         print(f"Unexpected error: {e}")
+
+
+
+'''
+-----------------------------------------------------------------------------------------------------------
+'''
+def is_valid_bucket_name(bucket_name):
+    """
+    Validates the S3 bucket name.
+    S3 bucket names must not contain underscores ('_').
+    """
+    if '_' in bucket_name:
+        print("Bucket name contains invalid characters: _")
+        return False
+    return True
+
+
+import boto3
+from botocore.exceptions import ClientError
+import re
+import certifi
+
+def is_valid_bucket_name(bucket_name):
+    """
+    Validates the S3 bucket name.
+    Bucket name must be between 3 and 63 characters long and match specific regex.
+    """
+    # Regex pattern to validate bucket name
+    bucket_name_pattern = r'^[a-z0-9.-]{3,63}$'
+
+    # Check for invalid characters like underscores, parentheses, etc.
+    if re.match(bucket_name_pattern, bucket_name):
+        return True
+    else:
+        print(f"Invalid bucket name '{bucket_name}'. Bucket name must only contain lowercase letters, numbers, hyphens, and periods.")
+        return False
+
+def create_s3_bucket():
+    """
+    Creates an S3 bucket with options for region, versioning, logging, and Block Public Access.
+    Ensures the bucket name is valid and unique globally.
+    """
+    print("\n\033[1;35mCreating an S3 Bucket...\033[0m")
+    print("\033[1;35m-------------------------\033[0m")
+
+    # Prompt user for a globally unique bucket name
+    while True:
+        bucket_name = input("Enter a globally unique name for the bucket: ").strip()
+        if not bucket_name:
+            print("Bucket name cannot be empty. Please provide a valid name.")
+        elif not is_valid_bucket_name(bucket_name):
+            continue  # Re-prompt if the name is invalid
+        else:
+            break  # Exit the loop if the bucket name is valid
+
+    # Prompt for region, default to 'us-east-1' if empty
+    region = input("Enter the AWS region for the bucket (leave empty for default 'us-east-1'): ").strip() or 'us-east-1'
+
+    # Prompt to enable versioning
+    enable_versioning = input("Enable versioning for the bucket? (y/n): ").strip().lower() == 'y'
+
+
+    try:
+        # Create the S3 client
+        s3_client = boto3.client('s3', region_name=region, verify=certifi.where())
+
+        # Handle bucket creation with location constraint only for regions other than 'us-east-1'
+        if region == 'us-east-1':
+            s3_client.create_bucket(Bucket=bucket_name)
+        else:
+            s3_client.create_bucket(
+                Bucket=bucket_name,
+                CreateBucketConfiguration={'LocationConstraint': region}
+            )
+
+        print(f"\033[1;32mBucket '{bucket_name}' created successfully in region {region}.\033[0m")
+
+        # Enable versioning if selected
+        if enable_versioning:
+            print("Enabling versioning for the bucket...")
+            s3_client.put_bucket_versioning(
+                Bucket=bucket_name,
+                VersioningConfiguration={'Status': 'Enabled'}
+            )
+            print("\033[1;32mVersioning enabled successfully.\033[0m")
+
+
+        print("\033[1;34mBucket Details:\033[0m")
+        print(f"  Name: {bucket_name}")
+        print(f"  Region: {region}")
+        print(f"  Versioning: {'Enabled' if enable_versioning else 'Disabled'}")
+
+        # Ask if they want to upload objects to the bucket
+        upload_objects = input("Do you want to upload objects to this bucket? (y/n): ").strip().lower() == 'y'
+
+        if upload_objects:
+            # Ask for file(s) to upload
+            files = input("Enter the local file path(s) to upload, separated by commas: ").split(',')
+            for file in files:
+                file = file.strip()
+                if file:  # Ensure the file path is not empty
+                    try:
+                        # Upload file to S3
+                        print(f"Uploading {file} to bucket {bucket_name}...")
+                        s3_client.upload_file(file, bucket_name, file)
+                        print(f"\033[1;32mFile '{file}' uploaded successfully.\033[0m")
+                    except FileNotFoundError:
+                        print(f"\033[1;31mFile '{file}' not found.\033[0m")
+                    except ClientError as e:
+                        print(f"\033[1;31mError uploading file '{file}': {e.response['Error']['Message']}\033[0m")
+
+            # Get and print ARN of the uploaded files
+            for file in files:
+                file = file.strip()
+                if file:
+                    object_arn = f"arn:aws:s3:::{bucket_name}/{file}"
+                    print(f"ARN for object '{file}': {object_arn}")
+            save_option = input("\nDo you want to save instance details to a JSON file? (y/n): ").lower()
+            s3= bucket_name + upload_objects
+            if save_option == 'y':
+                save_to_json(s3)
+            print("\033[1;32mAll files uploaded successfully.\033[0m")
+            
+            
+
+    except ClientError as e:
+        print(f"\033[1;31mError creating bucket: {e.response['Error']['Message']}\033[0m")
+    except Exception as e:
+        print(f"\033[1;31mUnexpected error: {str(e)}\033[0m")
+
+
