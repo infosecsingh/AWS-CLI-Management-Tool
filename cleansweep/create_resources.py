@@ -332,3 +332,62 @@ def create_s3_bucket():
 
 
 
+'''
+----------------------------------------------------------------------------------------------------------------------
+'''
+
+# LAMBDA FUNCTION - Create Lambda
+
+def create_lambda():
+    
+    clean.clean()
+     # Prompt for Lambda function name
+    function_name = input("Enter the name for the Lambda function: ")
+    # Prompt for runtime
+    runtime = input("Enter the runtime for the Lambda function (e.g., 'python3.8'): ")
+    # Prompt for handler
+    handler = input("Enter the handler for the Lambda function (e.g., 'lambda_function.lambda_handler'): ")
+    # Prompt for IAM role ARN
+    role_arn = input("Enter the IAM role ARN for the Lambda function: ")
+    # Prompt for ZIP file path
+    zip_file_path = input("Enter the path to the ZIP file containing the Lambda function code: ")
+    # Prompt for environment variables
+    env_vars = {}
+
+    while True:
+        key = input("Enter environment variable key (or press Enter to finish): ")
+        if not key:
+            break
+        value = input(f"Enter value for {key}: ")
+        env_vars[key] = value
+        print(f"Environment variable {key} added.")
+    
+    # Create Lambda function
+    lambda_client = boto3.client('lambda', verify=certifi.where())
+    try:
+        with open(zip_file_path, 'rb') as zip_file:
+            response = lambda_client.create_function(
+                FunctionName=function_name,
+                Runtime=runtime,
+                Role=role_arn,
+                Handler=handler,
+                Code={'ZipFile': zip_file.read()},
+                Environment={'Variables': env_vars}
+            )
+        print(f"Lambda function '{function_name}' created successfully.")
+        print(f"ARN: {response['FunctionArn']}")
+        print(f"Last Modified: {response['LastModified']}")
+        print(f"Description: {response['Description']}")
+
+    
+    # Ask to save details
+        save_option = input("\nDo you want to save details to a JSON file? (y/n): ").strip().lower()
+        if save_option == 'y':
+            try:
+                save_to_json(data=response, filename="lambda_details.json")
+                print("\033[1;32mDetails saved successfully to 'lambda_details.json'.\033[0m")
+            except Exception as e:
+                print(f"\033[1;31mError saving details to JSON: {e}\033[0m")    
+    
+    except ClientError as e:
+        print(f"Error creating Lambda function: {e.response['Error']['Message']}")

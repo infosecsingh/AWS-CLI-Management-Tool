@@ -376,7 +376,7 @@ def main_menu():
         clean.clean() 
         spinner.spinner(0.70)       
         print("┌─────────────────────────────────────────────────────────────────────────────────────────────┐")
-        print("│                           \033[1;36mAWS CLEAN SWEEP CLI TOOL\033[0m                                          │")
+        print("│                           \033[1;36mAWS CLI MANAGEMENT TOOL\033[0m                                           │")
         print("│                          developed by: infosecsingh                                         │")
         print("├────────┬────────────────────────────────────────────────────────────────────────────────────┤")
         print("│ \033[1;34mOption\033[0m │                          \033[1;34mDescription\033[0m                                               │")
