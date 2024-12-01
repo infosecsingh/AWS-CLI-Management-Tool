@@ -251,7 +251,6 @@ def create_s3_bucket():
     # Prompt to enable versioning
     enable_versioning = input("Enable versioning for the bucket? (y/n): ").strip().lower() == 'y'
 
-
     try:
         # Create the S3 client
         s3_client = boto3.client('s3', region_name=region, verify=certifi.where())
@@ -276,7 +275,7 @@ def create_s3_bucket():
             )
             print("\033[1;32mVersioning enabled successfully.\033[0m")
 
-
+        # Print bucket details
         print("\033[1;34mBucket Details:\033[0m")
         print(f"  Name: {bucket_name}")
         print(f"  Region: {region}")
@@ -285,39 +284,51 @@ def create_s3_bucket():
         # Ask if they want to upload objects to the bucket
         upload_objects = input("Do you want to upload objects to this bucket? (y/n): ").strip().lower() == 'y'
 
+        # Initialize data collection for uploaded files
+        uploaded_files_data = []
+
         if upload_objects:
             # Ask for file(s) to upload
-            files = input("Enter the local file path(s) to upload, separated by commas: ").split(',')
+            files_input = input("Enter the local file path(s) to upload, separated by commas: ")
+
+            # Process the input, stripping extra quotes and whitespace
+            files = [file.strip().strip('"') for file in files_input.split(',')]
+
             for file in files:
-                file = file.strip()
                 if file:  # Ensure the file path is not empty
                     try:
                         # Upload file to S3
                         print(f"Uploading {file} to bucket {bucket_name}...")
-                        s3_client.upload_file(file, bucket_name, file)
+                        s3_client.upload_file(file, bucket_name, os.path.basename(file))
                         print(f"\033[1;32mFile '{file}' uploaded successfully.\033[0m")
+
+                        # Collect details for JSON
+                        uploaded_files_data.append({
+                            "BucketName": bucket_name,
+                            "FileName": os.path.basename(file),
+                            "ARN": f"arn:aws:s3:::{bucket_name}/{os.path.basename(file)}"
+                        })
                     except FileNotFoundError:
                         print(f"\033[1;31mFile '{file}' not found.\033[0m")
                     except ClientError as e:
                         print(f"\033[1;31mError uploading file '{file}': {e.response['Error']['Message']}\033[0m")
+                    except Exception as e:
+                        print(f"\033[1;31mUnexpected error uploading file '{file}': {e}\033[0m")
 
-            # Get and print ARN of the uploaded files
-            for file in files:
-                file = file.strip()
-                if file:
-                    object_arn = f"arn:aws:s3:::{bucket_name}/{file}"
-                    print(f"ARN for object '{file}': {object_arn}")
-            save_option = input("\nDo you want to save instance details to a JSON file? (y/n): ").lower()
-            s3= bucket_name + upload_objects
+        # Ask to save details only if there are uploaded files
+        if uploaded_files_data:
+            save_option = input("\nDo you want to save details of uploaded files to a JSON file? (y/n): ").strip().lower()
             if save_option == 'y':
-                save_to_json(s3)
-            print("\033[1;32mAll files uploaded successfully.\033[0m")
-            
-            
+                try:
+                    save_to_json(data=uploaded_files_data, filename="uploaded_files_details.json")
+                    print("\033[1;32mDetails saved successfully to 'uploaded_files_details.json'.\033[0m")
+                except Exception as e:
+                    print(f"\033[1;31mError saving details to JSON: {e}\033[0m")
 
     except ClientError as e:
         print(f"\033[1;31mError creating bucket: {e.response['Error']['Message']}\033[0m")
     except Exception as e:
         print(f"\033[1;31mUnexpected error: {str(e)}\033[0m")
+
 
 

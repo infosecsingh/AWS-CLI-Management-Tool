@@ -218,7 +218,7 @@ def fetch_s3_buckets():
     print(f"Fetching S3 Buckets Globally....")
     spinner.spinner(0.50)
     buckets = [
-            {"ResourceType": "S3", "Region": "Global", "ResourceId": bucket['Name'], "State": "N/A"}
+            {"ResourceType": "S3", "Region": "Global", "BucketName": bucket['Name'], "State": "N/A"}
             for bucket in ec2.list_buckets()['Buckets']  # Correct key is 'Buckets'
         ]
     return buckets  
@@ -245,7 +245,11 @@ def fetch_ses_identities():
     ]
     return identities   
 
-def all_services():
+def fetch_all_resources():
+    """
+    Fetches all resources across all regions and globally.
+    Returns a list of dictionaries with resource details.
+    """
     clean.clean()
     spinner.spinner(0.50)
     ec2_data = fetch_ec2_instances()
@@ -484,25 +488,62 @@ def delete_emr_clusters(cluster_ids, region):
     except Exception as e:
         print(f"Error deleting EMR clusters: {str(e)}") 
 
-
-
-def delete_s3_buckets(bucket_names):
+        
+def delete_s3_buckets(bucket_names_input):
     """
-    Deletes specified S3 buckets.
+    Deletes specified S3 buckets, handling versioned and non-empty buckets.
 
     Parameters:
         bucket_names (list): List of S3 bucket names to delete.
     """
+    # No need to split, assuming input is a list
+    bucket_names = bucket_names_input 
+    
     s3 = boto3.resource('s3', verify=certifi.where())
-    try:
-        print(f"Deleting S3 buckets: {', '.join(bucket_names)}...")
-        for bucket_name in bucket_names:
+
+    for bucket_name in bucket_names:
+        try:
+            print(f"\n\033[1;34mProcessing bucket: {bucket_name}...\033[0m")
             bucket = s3.Bucket(bucket_name)
-            bucket.objects.delete()
+            versioning = s3.BucketVersioning(bucket_name)
+
+            # Handle versioned buckets
+            if versioning.status == 'Enabled':
+                confirm = input(
+                    f"Bucket '{bucket_name}' has versioning enabled. Delete all versions? (y/n): "
+                ).strip().lower()
+                if confirm == 'y':
+                    print("Deleting all object versions...")
+                    bucket.object_versions.delete()
+                    print("\033[1;32mAll versions deleted successfully.\033[0m")
+                else:
+                    print(f"\033[1;33mSkipping bucket '{bucket_name}' due to versioning.\033[0m")
+                    continue
+
+            # Handle non-versioned buckets with objects
+            if any(bucket.objects.all()):
+                confirm = input(
+                    f"Bucket '{bucket_name}' is not empty. Delete all objects? (y/n): "
+                ).strip().lower()
+                if confirm == 'y':
+                    print("Deleting all objects in the bucket...")
+                    bucket.objects.all().delete()
+                    print("\033[1;32mAll objects deleted successfully.\033[0m")
+                else:
+                    print(f"\033[1;33mSkipping bucket '{bucket_name}' due to remaining objects.\033[0m")
+                    continue
+
+            # Delete the bucket itself
+            print(f"Deleting bucket '{bucket_name}'...")
             bucket.delete()
-            print(f"Bucket {bucket_name} deleted successfully.")
-    except Exception as e:
-        print(f"Error deleting buckets: {str(e)}")  
+            print(f"\033[1;32mBucket '{bucket_name}' deleted successfully.\033[0m")
+
+        except ClientError as e:
+            print(f"\033[1;31mError deleting bucket '{bucket_name}': {e.response['Error']['Message']}\033[0m")
+        except Exception as e:
+            print(f"\033[1;31mUnexpected error while deleting bucket '{bucket_name}': {str(e)}\033[0m")
+
+
 
 def delete_ses_identities(identity_names):
     """

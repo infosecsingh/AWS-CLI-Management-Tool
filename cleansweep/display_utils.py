@@ -11,17 +11,17 @@ def display_table(data):
         print(tabulate(data, headers="keys", tablefmt="pretty"))
 
 
-def save_to_json(data, default_filename="data.json"):
+def save_to_json(data, filename="data.json"):
     """
     Saves the resource data to a JSON file at a user-specified location.
     """
     try:
         # Ask the user for a save path
-        save_path = input(f"Enter the path to save the file (default: {default_filename}): ").strip()
+        save_path = input(f"Enter the path to save the file (default: {filename}): ").strip()
 
         # Use default filename if the user does not provide a path
         if not save_path:
-            save_path = default_filename
+            save_path = filename
 
         # Ensure the file has a .json extension
         if not save_path.endswith(".json"):

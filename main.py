@@ -7,6 +7,8 @@ import cleansweep.create_resources as create_resources
 
 # Create a choice of options
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 def aws_create():
     while True:
         clean.clean()
@@ -163,8 +165,9 @@ def aws_delete():
             display_utils.display_table(s3_data)
             if not s3_data:
                 return
-            bucket_names = input("Enter S3 bucket names to delete (comma-separated): ").split(', ')
-            aws_resources.delete_s3_buckets(bucket_names) 
+            bucket_names_input = input("Enter S3 bucket names to delete (comma-separated): ").split(',')
+            bucket_names_input = [name.strip() for name in bucket_names_input]  # Strip extra spaces
+            aws_resources.delete_s3_buckets(bucket_names_input)
         elif choice == '15':
             ses_data = aws_resources.fetch_ses_identities()
             display_utils.display_table(ses_data)
