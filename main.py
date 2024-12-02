@@ -11,8 +11,8 @@ sys.stdout.reconfigure(encoding='utf-8')
 
 def aws_create():
     while True:
-        clean.clean()
         print("\n")
+        clean.clean()
         spinner.spinner(0.50)
         print("\033[1;35m----------------Create AWS Resources------------------\033[0m")
         print("[01] │ Create EC2 Instances")
@@ -20,8 +20,7 @@ def aws_create():
         print("[03] │ Create Lambda Functions")
         print("\n")
         choice = input("Choose an option (1-3) or go to [M]ain Menu: ")
-
-        if choice == '1':
+        if choice == '1': 
             create_resources.create_ec2_instance()
         elif choice == '2':
             create_resources.create_s3_bucket()
@@ -29,10 +28,11 @@ def aws_create():
             create_resources.create_lambda()
         elif choice in ['M','m']:
             main_menu()
-            break
         else:
             print("Invalid choice. Please try again.")
-def aws_delete():
+
+
+def aws_delete():    
     while True:
         clean.clean()
         print("\n")
@@ -79,6 +79,7 @@ def aws_delete():
                 return
             function_names = input("Enter Lambda function names to delete (comma-separated): ").split(', ')
             region = input("Enter the AWS region of these functions: ")
+            function_names = [name.strip() for name in function_names]  
             aws_resources.delete_lambda_functions(function_names, region)
         elif choice == '4':
             rds_data = aws_resources.fetch_rds_instances()
@@ -373,7 +374,7 @@ def aws_fetch():
 
 def main_menu():   
     while True:
-        clean.clean() 
+        clean.clean()
         spinner.spinner(0.70)       
         print("┌─────────────────────────────────────────────────────────────────────────────────────────────┐")
         print("│                           \033[1;36mAWS CLI MANAGEMENT TOOL\033[0m                                           │")

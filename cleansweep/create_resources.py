@@ -1,6 +1,7 @@
 import boto3
 import os
 import re
+import json
 import certifi
 from botocore.exceptions import ClientError
 import cleansweep.clean_terminal as clean
@@ -232,7 +233,9 @@ def create_s3_bucket():
     Creates an S3 bucket with options for region, versioning, logging, and Block Public Access.
     Ensures the bucket name is valid and unique globally.
     """
-    print("\n\033[1;35mCreating an S3 Bucket...\033[0m")
+    clean.clean()
+    spinner.spinner(0.5)
+    print("\n\033[1;35mCreating a S3 Bucket...\033[0m")
     print("\033[1;35m-------------------------\033[0m")
 
     # Prompt user for a globally unique bucket name
@@ -283,6 +286,10 @@ def create_s3_bucket():
 
         # Ask if they want to upload objects to the bucket
         upload_objects = input("Do you want to upload objects to this bucket? (y/n): ").strip().lower() == 'y'
+        if not upload_objects:
+            print(f"\033[1;32mBucket '{bucket_name}' created successfully in region {region}.\033[0m")
+            print("\033[1;31mNo objects will be uploaded.\033[0m")
+            input("\nPress Enter to return to the menu...")
 
         # Initialize data collection for uploaded files
         uploaded_files_data = []
@@ -321,14 +328,19 @@ def create_s3_bucket():
             if save_option == 'y':
                 try:
                     save_to_json(data=uploaded_files_data, filename="uploaded_files_details.json")
-                    print("\033[1;32mDetails saved successfully to 'uploaded_files_details.json'.\033[0m")
+                    input("\nPress Enter to return to the menu...")
                 except Exception as e:
                     print(f"\033[1;31mError saving details to JSON: {e}\033[0m")
-
-    except ClientError as e:
+                    return save_option
+            else:
+                print("\033[1;31mDetails not saved.\033[0m")
+                input("\nPress Enter to return to the menu...")
+        return uploaded_files_data
+    except Exception as e:
         print(f"\033[1;31mError creating bucket: {e.response['Error']['Message']}\033[0m")
     except Exception as e:
         print(f"\033[1;31mUnexpected error: {str(e)}\033[0m")
+        return None
 
 
 
@@ -336,34 +348,109 @@ def create_s3_bucket():
 ----------------------------------------------------------------------------------------------------------------------
 '''
 
-# LAMBDA FUNCTION - Create Lambda
+
+def get_iam_roles():
+    """
+    Fetches existing IAM roles.
+    Returns:
+        List of IAM role ARNs.
+    """
+    iam_client = boto3.client('iam')
+    try:
+        response = iam_client.list_roles()
+        roles = response.get('Roles', [])
+        return [role['Arn'] for role in roles]
+    except ClientError as e:
+        print(f"\033[1;31mError fetching IAM roles: {e.response['Error']['Message']}\033[0m")
+        return []
+    
+def create_iam_role(role_name="lambda_execution_role"):
+    """
+    Creates a new IAM role with Lambda execution trust policy.
+    Returns:
+        ARN of the created role, or None if failed.
+    """
+    iam_client = boto3.client('iam')
+    trust_policy = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Action": "sts:AssumeRole"
+            }
+        ]
+    }
+    try:
+        response = iam_client.create_role(
+            RoleName=role_name,
+            AssumeRolePolicyDocument=json.dumps(trust_policy)
+        )
+        print(f"Created IAM Role: {response['Role']['Arn']}")
+        attach_role_policy(role_name)
+        return response['Role']['Arn']
+    except ClientError as e:
+        print(f"\033[1;31mError creating IAM role: {e.response['Error']['Message']}\033[0m")
+        return None
+
+def attach_role_policy(role_name):
+    """
+    Attaches the basic Lambda execution policy to a role.
+    """
+    iam_client = boto3.client('iam')
+    try:
+        iam_client.attach_role_policy(
+            RoleName=role_name,
+            PolicyArn='arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+        )
+        print("\033[1;32mAttached 'AWSLambdaBasicExecutionRole' policy to the role.\033[0m")
+    except ClientError as e:
+        print(f"\033[1;31mError attaching policy to the role: {e.response['Error']['Message']}\033[0m")
 
 def create_lambda():
-    
-    clean.clean()
-     # Prompt for Lambda function name
+    """
+    Creates an AWS Lambda function.
+    """
+    # Prompt for Lambda function details
     function_name = input("Enter the name for the Lambda function: ")
-    # Prompt for runtime
+    region = input("Enter the AWS region for the Lambda function (e.g., 'us-east-1'): ").strip()
+    if not region:
+        region = "us-east-1".strip()
     runtime = input("Enter the runtime for the Lambda function (e.g., 'python3.8'): ")
-    # Prompt for handler
     handler = input("Enter the handler for the Lambda function (e.g., 'lambda_function.lambda_handler'): ")
-    # Prompt for IAM role ARN
-    role_arn = input("Enter the IAM role ARN for the Lambda function: ")
-    # Prompt for ZIP file path
-    zip_file_path = input("Enter the path to the ZIP file containing the Lambda function code: ")
+    if not handler:
+        handler = "lambda_function.lambda_handler".strip()
+    zip_file_path = input("Enter the path to the ZIP file containing the Lambda function code: ").strip('\"')
+    # IAM Role Handling
+    role_arns = get_iam_roles()
+    if role_arns:
+        print("\nAvailable IAM Roles:")
+        for idx, arn in enumerate(role_arns, start=1):
+            print(f"{idx}. {arn}")
+    
+    selected_role_index = input("\nSelect a role by number (or press Enter to create a new role): ").strip()
+    if selected_role_index.isdigit() and 1 <= int(selected_role_index) <= len(role_arns):
+        role_arn = role_arns[int(selected_role_index) - 1]
+    else:
+        print("Creating a new IAM role...")
+        role_name = input("Enter a name for the new role (default: lambda_execution_role): ").strip() or "lambda_execution_role"
+        role_arn = create_iam_role(role_name)
+        if not role_arn:
+            print("\033[1;31mFailed to create a new role. Aborting Lambda function creation.\033[0m")
+            return
+
     # Prompt for environment variables
     env_vars = {}
-
     while True:
         key = input("Enter environment variable key (or press Enter to finish): ")
         if not key:
             break
         value = input(f"Enter value for {key}: ")
         env_vars[key] = value
-        print(f"Environment variable {key} added.")
-    
-    # Create Lambda function
-    lambda_client = boto3.client('lambda', verify=certifi.where())
+
+    # Create the Lambda function
+    lambda_client = boto3.client('lambda', region_name=region, verify=certifi.where())
+
     try:
         with open(zip_file_path, 'rb') as zip_file:
             response = lambda_client.create_function(
@@ -374,20 +461,28 @@ def create_lambda():
                 Code={'ZipFile': zip_file.read()},
                 Environment={'Variables': env_vars}
             )
-        print(f"Lambda function '{function_name}' created successfully.")
+        print(f"\n\033[1;32mLambda function '{function_name}' created successfully.\033[0m")
         print(f"ARN: {response['FunctionArn']}")
         print(f"Last Modified: {response['LastModified']}")
-        print(f"Description: {response['Description']}")
-
-    
-    # Ask to save details
+        print(f"Description: {response.get('Description', 'No description provided.')}")
+        
+        # Option to save details
         save_option = input("\nDo you want to save details to a JSON file? (y/n): ").strip().lower()
         if save_option == 'y':
-            try:
-                save_to_json(data=response, filename="lambda_details.json")
-                print("\033[1;32mDetails saved successfully to 'lambda_details.json'.\033[0m")
-            except Exception as e:
-                print(f"\033[1;31mError saving details to JSON: {e}\033[0m")    
-    
+            if save_option == 'y':
+                try:
+                    save_to_json(data=response, filename="uploaded_files_details.json")
+                    input("\nPress Enter to return to the menu...")
+                except Exception as e:
+                    print(f"\033[1;31mError saving details to JSON: {e}\033[0m")
+                    return save_option
+            else:
+                print("\033[1;31mDetails not saved.\033[0m")
+                input("\nPress Enter to return to the menu...")
+
     except ClientError as e:
-        print(f"Error creating Lambda function: {e.response['Error']['Message']}")
+        print(f"\033[1;31mError creating Lambda function: {e.response['Error']['Message']}\033[0m")
+    except FileNotFoundError:
+        print(f"\033[1;31mZIP file not found at path: {zip_file_path}\033[0m")
+    except Exception as e:
+        print(f"\033[1;31mUnexpected error: {str(e)}\033[0m")
