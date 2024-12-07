@@ -412,6 +412,8 @@ def create_lambda():
     Creates an AWS Lambda function.
     """
     # Prompt for Lambda function details
+    clean.clean()
+    spinner.spinner(0.5)
     function_name = input("Enter the name for the Lambda function: ")
     region = input("Enter the AWS region for the Lambda function (e.g., 'us-east-1'): ").strip()
     if not region:
@@ -482,7 +484,10 @@ def create_lambda():
 
     except ClientError as e:
         print(f"\033[1;31mError creating Lambda function: {e.response['Error']['Message']}\033[0m")
+        input("\nPress Enter to return to the menu...")
     except FileNotFoundError:
         print(f"\033[1;31mZIP file not found at path: {zip_file_path}\033[0m")
+        input("\nPress Enter to return to the menu...")
     except Exception as e:
         print(f"\033[1;31mUnexpected error: {str(e)}\033[0m")
+        input("\nPress Enter to return to the menu...")
