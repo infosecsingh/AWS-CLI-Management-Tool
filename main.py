@@ -1,4 +1,5 @@
 import sys
+import io
 import cleansweep.aws_resources as aws_resources
 import cleansweep.spinner as spinner
 import cleansweep.clean_terminal as clean
@@ -7,7 +8,7 @@ import cleansweep.create_resources as create_resources
 
 # Create a choice of options
 
-sys.stdout.reconfigure(encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 def aws_create():
     while True:
